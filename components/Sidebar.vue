@@ -124,7 +124,6 @@ const menuItems = [
   { name: "Dashboard", path: "/dashboard", icon: "heroicons:squares-2x2" },
   { name: "Patients", path: "/patients", icon: "heroicons:users" },
   { name: "Consultations", path: "/consultation", icon: "heroicons:folder-open" },
-  { name: "AI Tools", path: "/ai-tools", icon: "heroicons:cpu-chip" },
   { name: "Settings", path: "/settings", icon: "heroicons:cog-6-tooth" },
 ];
 
