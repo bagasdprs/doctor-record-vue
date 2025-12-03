@@ -1,2 +1,19 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
+
+/* Menambahkan layer 'base' untuk aturan global */
+@layer base {
+  body {
+    /* 1. Background: Putih keabuan dikit (biar gak silau) */
+    @apply bg-slate-50;
+
+    /* 2. Text: Hitam soft (Slate 800) */
+    @apply text-slate-800;
+
+    /* 3. Font: Pakai font standar yang rapi (San Serif) */
+    @apply font-sans;
+
+    /* 4. Biar scrollbar-nya halus kalau di-scroll */
+    @apply antialiased;
+  }
+}
