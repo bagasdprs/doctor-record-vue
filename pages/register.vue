@@ -1,45 +1,60 @@
 <script setup lang="ts">
-// Menggunakan layout 'auth-register' (yang form-nya di kiri)
+// Menggunakan layout 'auth-register'
 definePageMeta({
   layout: "auth-register",
 });
 
-// Tipe data form
+// PERBAIKAN 1: Ganti strNumber jadi medicalId di Interface
 interface RegisterForm {
   fullName: string;
   email: string;
   password: string;
-  strNumber: string;
+  medicalId: string;
   specialization: string;
 }
 
-// State reactive (Logic kamu tetap aman di sini)
+// PERBAIKAN 2: Ganti di State Reactive
 const form = reactive<RegisterForm>({
   fullName: "",
   email: "",
   password: "",
-  strNumber: "",
+  medicalId: "",
   specialization: "Dokter Umum",
 });
 
 const isLoading = ref(false);
 
 const handleRegister = async () => {
-  // Simulasi validasi
-  if (!form.fullName || !form.email || !form.password) {
-    alert("Mohon lengkapi data diri Anda.");
+  // PERBAIKAN 3: Validasi pakai medicalId
+  if (!form.fullName || !form.email || !form.password || !form.medicalId) {
+    alert("Mohon lengkapi semua data diri Anda.");
     return;
   }
 
   isLoading.value = true;
 
-  // Ceritanya kirim ke API...
-  setTimeout(() => {
-    console.log("Data Register:", form);
-    isLoading.value = false;
+  try {
+    // KIRIM KE API
+    // Karena namanya udah sama (medicalId), Backend bakal seneng!
+    const response = await $fetch("/api/auth/register", {
+      method: "POST",
+      body: {
+        fullName: form.fullName,
+        email: form.email,
+        password: form.password,
+        medicalId: form.medicalId, // <--- KIRIM SEBAGAI medicalId
+        specialization: form.specialization,
+      },
+    });
+
     alert("Registrasi Berhasil! Silakan Login.");
     navigateTo("/login");
-  }, 1500);
+  } catch (error: any) {
+    console.error(error);
+    alert(error.statusMessage || "Terjadi kesalahan saat registrasi.");
+  } finally {
+    isLoading.value = false;
+  }
 };
 </script>
 
@@ -51,6 +66,7 @@ const handleRegister = async () => {
     </div>
 
     <form @submit.prevent="handleRegister" class="space-y-5">
+      <!-- Nama Lengkap -->
       <div>
         <label class="block text-sm font-semibold text-slate-700 mb-2">Nama Lengkap & Gelar</label>
         <div class="relative group">
@@ -66,6 +82,7 @@ const handleRegister = async () => {
         </div>
       </div>
 
+      <!-- Email -->
       <div>
         <label class="block text-sm font-semibold text-slate-700 mb-2">Email Profesi</label>
         <div class="relative group">
@@ -77,16 +94,19 @@ const handleRegister = async () => {
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- MEDICAL ID (Update v-model di sini juga) -->
         <div>
-          <label class="block text-sm font-semibold text-slate-700 mb-2">Nomor STR</label>
+          <label class="block text-sm font-semibold text-slate-700 mb-2">Nomor STR / ID</label>
           <div class="relative group">
             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <Icon name="heroicons:identification-solid" class="text-slate-400 group-focus-within:text-emerald-500 w-5 h-5 transition-colors" />
             </div>
-            <input v-model="form.strNumber" type="text" placeholder="123456..." class="w-full pl-12 pr-4 py-3 bg-slate-50 border-0 rounded-xl text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all font-medium" />
+            <!-- PERBAIKAN 4: v-model nyambung ke form.medicalId -->
+            <input v-model="form.medicalId" type="text" placeholder="123456..." class="w-full pl-12 pr-4 py-3 bg-slate-50 border-0 rounded-xl text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all font-medium" />
           </div>
         </div>
 
+        <!-- Spesialisasi -->
         <div>
           <label class="block text-sm font-semibold text-slate-700 mb-2">Spesialisasi</label>
           <div class="relative group">
@@ -104,6 +124,7 @@ const handleRegister = async () => {
         </div>
       </div>
 
+      <!-- Password -->
       <div>
         <label class="block text-sm font-semibold text-slate-700 mb-2">Password</label>
         <div class="relative group">

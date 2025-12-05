@@ -1,99 +1,54 @@
-<!-- <script setup lang="ts">
-definePageMeta({
-  layout: "auth",
-});
-
-// Data login dummy
-const email = ref("");
-const password = ref("");
-
-const handleLogin = () => {
-  // Simulasi login
-  if (email.value && password.value) {
-    navigateTo("/dashboard");
-  } else {
-    alert("Isi email & password dulu ya, Dok!");
-  }
-};
-</script>
-
-<template>
-  <div class="p-8">
-    <div class="text-center mb-8">
-      <div class="inline-flex items-center justify-center w-16 h-16 bg-teal-50 rounded-full mb-4">
-        <Icon name="heroicons:heart" class="w-8 h-8 text-teal-600" />
-      </div>
-      <h1 class="text-2xl font-bold text-slate-800">Doctor Portal</h1>
-      <p class="text-slate-500 text-sm mt-2">Silakan masuk untuk akses rekam medis</p>
-    </div>
-
-    <form @submit.prevent="handleLogin" class="space-y-5">
-      <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1.5">Email Profesi</label>
-        <div class="relative">
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Icon name="heroicons:envelope" class="text-slate-400 w-5 h-5" />
-          </div>
-          <input
-            v-model="email"
-            type="email"
-            placeholder="dokter@rs.com"
-            class="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-all text-sm"
-          />
-        </div>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-slate-700 mb-1.5">Password</label>
-        <div class="relative">
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Icon name="heroicons:lock-closed" class="text-slate-400 w-5 h-5" />
-          </div>
-          <input
-            v-model="password"
-            type="password"
-            placeholder="••••••"
-            class="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-all text-sm"
-          />
-        </div>
-      </div>
-
-      <button class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-teal-600/20 transition-all transform active:scale-95 flex items-center justify-center gap-2">
-        <span>Masuk Aplikasi</span>
-        <Icon name="heroicons:arrow-right" class="w-4 h-4" />
-      </button>
-    </form>
-
-    <div class="mt-8 text-center">
-      <p class="text-sm text-slate-500">
-        Belum punya akun?
-        <NuxtLink to="/register" class="text-teal-600 font-bold hover:underline">Daftar Dokter</NuxtLink>
-      </p>
-    </div>
-  </div>
-</template> -->
-
 <script setup lang="ts">
 definePageMeta({
   layout: "auth",
 });
 
-// State form
 const email = ref("");
 const password = ref("");
+// Kita tambahkan ini lagi supaya tidak error di template (v-model="medicalId")
 const medicalId = ref("");
+const isLoading = ref(false);
 
-const handleLogin = () => {
-  if (!email.value || !password.value || !medicalId.value) {
-    alert("Mohon lengkapi semua data kredensial Anda.");
+const handleLogin = async () => {
+  // Validasi input
+  if (!email.value || !password.value) {
+    alert("Isi email & password dulu ya, Dok!");
     return;
   }
-  navigateTo("/dashboard");
+
+  isLoading.value = true;
+
+  try {
+    // TEMBAK API LOGIN
+    // Tambahkan <any> supaya TypeScript tidak rewel soal tipe data response
+    const response = await $fetch<any>("/api/auth/login", {
+      method: "POST",
+      body: {
+        email: email.value,
+        password: password.value,
+        // medicalId tidak perlu dikirim kalau API login cuma butuh email & password
+      },
+    });
+
+    // Kalau sukses
+    console.log("User:", response.user);
+
+    // Simpan data user sederhana di localStorage
+    if (import.meta.client) {
+      localStorage.setItem("doctorName", response.user.name);
+    }
+
+    navigateTo("/dashboard");
+  } catch (error: any) {
+    alert(error.statusMessage || "Login Gagal. Cek email/password.");
+  } finally {
+    isLoading.value = false;
+  }
 };
 </script>
 
 <template>
-  <div class="bg-white p-10 rounded-[2rem] shadow-2xl shadow-slate-200/50 border border-slate-100">
+  <div class="bg-white p-10 rounded-4xl shadow-2xl shadow-slate-200/50 border border-slate-100">
     <div class="mb-8">
       <h2 class="text-3xl font-bold text-slate-900 mb-3">Doctor Portal Login</h2>
       <p class="text-slate-500 leading-relaxed">Please enter your credentials to securely access your account.</p>
@@ -136,6 +91,7 @@ const handleLogin = () => {
           <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <Icon name="heroicons:identification-solid" class="text-slate-400 group-focus-within:text-emerald-500 transition-colors w-5 h-5" />
           </div>
+          <!-- Pastikan v-model ini nyambung ke const medicalId di script -->
           <input
             v-model="medicalId"
             type="text"
@@ -145,14 +101,19 @@ const handleLogin = () => {
         </div>
       </div>
 
-      <button class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-emerald-500/30 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 mt-4">
-        <Icon name="heroicons:shield-check-solid" class="w-5 h-5" />
-        <span>Secure Login</span>
+      <button
+        type="submit"
+        :disabled="isLoading"
+        class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-emerald-500/30 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 mt-4 disabled:opacity-70 disabled:cursor-not-allowed"
+      >
+        <Icon v-if="isLoading" name="svg-spinners:ring-resize" class="w-5 h-5" />
+        <Icon v-else name="heroicons:shield-check-solid" class="w-5 h-5" />
+        <span>{{ isLoading ? "Checking..." : "Secure Login" }}</span>
       </button>
 
       <div class="flex items-center justify-between text-sm mt-6">
         <a href="#" class="text-slate-500 hover:text-emerald-600 font-medium">Forgot Password?</a>
-        <a href="/register" class="text-slate-500 hover:text-emerald-600 font-medium">Register Account</a>
+        <NuxtLink to="/register" class="text-slate-500 hover:text-emerald-600 font-medium">Register Account</NuxtLink>
       </div>
     </form>
 
