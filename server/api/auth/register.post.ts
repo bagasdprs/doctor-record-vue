@@ -82,3 +82,14 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, statusMessage: "Gagal menyimpan ke database" });
   }
 });
+
+// export default defineEventHandler(async (event) => {
+//   // Kita coba baca body
+//   const body = await readBody(event);
+
+//   // Balikin lagi apa yang dikirim (Echo)
+//   return {
+//     status: "success",
+//     receivedData: body || "KOSONG BRO",
+//   };
+// });

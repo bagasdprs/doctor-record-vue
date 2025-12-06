@@ -1,46 +1,40 @@
 <script setup lang="ts">
+import { useAuthStore } from "~/stores/auth";
+
 definePageMeta({
   layout: "auth",
 });
 
+const authStore = useAuthStore();
 const email = ref("");
 const password = ref("");
-// Kita tambahkan ini lagi supaya tidak error di template (v-model="medicalId")
 const medicalId = ref("");
 const isLoading = ref(false);
 
 const handleLogin = async () => {
-  // Validasi input
-  if (!email.value || !password.value) {
-    alert("Isi email & password dulu ya, Dok!");
+  if (!email.value || !password.value || !medicalId.value) {
+    alert("Isi email, password & Medical ID dulu ya, Dok!");
     return;
   }
 
   isLoading.value = true;
 
   try {
-    // TEMBAK API LOGIN
-    // Tambahkan <any> supaya TypeScript tidak rewel soal tipe data response
     const response = await $fetch<any>("/api/auth/login", {
       method: "POST",
       body: {
         email: email.value,
         password: password.value,
-        // medicalId tidak perlu dikirim kalau API login cuma butuh email & password
       },
     });
 
-    // Kalau sukses
-    console.log("User:", response.user);
+    authStore.setUser(response.user);
 
-    // Simpan data user sederhana di localStorage
-    if (import.meta.client) {
-      localStorage.setItem("doctorName", response.user.name);
-    }
-
+    console.log("Login Sukses, User:", authStore.user);
     navigateTo("/dashboard");
+    // -------------------------
   } catch (error: any) {
-    alert(error.statusMessage || "Login Gagal. Cek email/password.");
+    alert(error.statusMessage || "Login Gagal.");
   } finally {
     isLoading.value = false;
   }

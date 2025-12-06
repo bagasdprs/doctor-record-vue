@@ -14,6 +14,10 @@ Built with high-performance modern frontend technologies:
 - **State Management:** Pinia
 - **Audio Handling:** VueUse (Media Controls)
 - **Icons:** Nuxt Icon (Iconify)
+- **Backend:** Nuxt Server Routes (Nitro)
+- **Database:** PostgreSQL (Local / Supabase ready)
+- **ORM:** Drizzle ORM (Type-safe SQL)
+- **Security:** Bcrypt.js (Password Hashing)
 
 **Planned AI Integrations:**
 
@@ -29,6 +33,24 @@ Built with high-performance modern frontend technologies:
 - [ ] **AI SOAP Generator:** Automated voice-to-text conversion into structured SOAP notes.
 - [ ] **Medical Export:** Print diagnosis results or prescriptions as PDF.
 
+## ✨ Fitur Utama (Progress Update)
+
+- [x] **Autentikasi Dokter:**
+  - Login & Register Aman (Encrypted Password).
+  - Validasi Data Profesi (STR & Spesialisasi).
+- [x] **Manajemen Profil:** (BARU)
+  - Update Biodata Dokter via Settings.
+  - Upload Foto Profil (Base64 Storage).
+- [x] **Dashboard Interaktif:**
+  - Dark Mode / Light Mode Toggle. (BARU)
+  - Collapsible Sidebar dengan Animasi. (BARU)
+  - Real-time User Data Binding (Pinia Store).
+- [x] **Konsultasi UI:** (BARU - Sebelumnya Voice Recorder masih kosong)
+  - List Riwayat Pasien.
+  - Live Recording Interface (Timer & Waveform Visualizer).
+- [ ] **Voice Recorder & AI:** Integrasi Whisper & Gemini (Masih Pending).
+- [ ] **Medical Export:** Print diagnosis results (Masih Pending).
+
 ## 📂 Project Structure
 
 This project follows the standard Nuxt 3 root-level structure for better maintainability:
@@ -39,10 +61,14 @@ doctor-record-apps/
 ├── components/         # Reusable UI Components
 ├── layouts/            # Layouts (Auth & Dashboard Sidebar)
 ├── middleware/         # Route Guards
-├── pages/              # Application Routes (File-based Routing)
-├── server/             # API Routes & Backend Logic
+├── pages/              # Application Routes
+├── server/
+│   ├── api/            # Backend Endpoints (Auth, Doctors, etc.)
+│   ├── database/       # Drizzle Schema & Seeding
+│   └── utils/          # Database Connection
 ├── stores/             # Pinia State Management
 ├── app.vue             # Root Component
+├── drizzle.config.ts   # Database Configuration
 └── nuxt.config.ts      # Nuxt Configuration
 ```
 
@@ -62,13 +88,29 @@ cd doctor-record-apps
 npm install
 ```
 
-3. Run Development Server:
+3. Buat file _.env_ dan isi URL Database:
+
+```bash
+DATABASE_URL="postgresql://postgres:password@localhost:5433/doctor_record_apps"
+```
+
+4. Setup Database (Drizzle):
+
+```bash
+# Membuat Tabel
+npx drizzle-kit push
+
+# Mengisi Data Dummy (Optional)
+npx tsx server/database/seed.ts
+```
+
+5. Run Development Server:
 
 ```bash
 npm run dev
 ```
 
-4. Open in Browser: Visit http://localhost:3000
+6. Open in Browser: Visit http://localhost:3000
 
 ---
 
@@ -79,14 +121,3 @@ This project utilizes Tailwind CSS v4 with the Vite Plugin configuration in Nuxt
 Made with ❤️ and a lot of coffee by Bagas Dwiprasandi.
 
 ---
-
-### Final Steps:
-
-1.  Update the file.
-2.  Run these commands to update your GitHub:
-
-```bash
-git add README.md
-git commit -m "Docs: Update README to English version"
-git push
-```
