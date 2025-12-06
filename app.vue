@@ -1,5 +1,13 @@
 <script setup lang="ts">
-// ini kode
+import { useAuthStore } from "~/stores/auth";
+
+const authStore = useAuthStore();
+
+await callOnce(async () => {
+  if (authStore.isLoggedIn) {
+    await authStore.fetchUserProfile();
+  }
+});
 </script>
 
 <template>
