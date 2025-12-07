@@ -1,13 +1,13 @@
 <script setup lang="ts">
-// Otomatis pindah ke halaman login
 navigateTo("/login");
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center p-4">
+  <div class="min-h-screen flex items-center justify-center p-4 bg-emerald-50 dark:bg-emerald-950">
     <div class="text-center">
-      <Icon name="svg-spinners:ring-resize" class="w-10 h-10 text-blue-600 mb-4 mx-auto" />
-      <p class="text-slate-500 font-medium">Redirecting to MediSecure...</p>
+      <!-- Spinner Hijau -->
+      <Icon name="svg-spinners:ring-resize" class="w-12 h-12 text-emerald-600 dark:text-emerald-400 mb-4 mx-auto" />
+      <p class="text-emerald-700 dark:text-emerald-200 font-medium tracking-wide animate-pulse">Redirecting to MediSecure...</p>
     </div>
   </div>
 </template>

@@ -9,11 +9,12 @@ const authStore = useAuthStore();
 const route = useRoute();
 
 // State
-const isCollapsed = ref(false);
-const isMobileOpen = ref(false);
+const isCollapsed = ref(false); // Mode Desktop (Kecil/Besar)
+const isMobileOpen = ref(false); // Mode Mobile (Buka/Tutup)
 
 // Window Resize Logic
 const { width } = useWindowSize();
+// Kita anggap Mobile jika lebar layar < 1024px (LG)
 const isMobile = computed(() => width.value < 1024);
 
 // Otomatis tutup sidebar mobile saat pindah halaman
@@ -37,46 +38,33 @@ const toggleMobileMenu = () => (isMobileOpen.value = !isMobileOpen.value);
 </script>
 
 <template>
-  <!-- TOMBOL MOBILE (Hanya muncul di HP) -->
+  <!-- TOMBOL HAMBURGER MOBILE (Hanya muncul di HP/Tablet) -->
   <button v-if="isMobile && !isMobileOpen" @click="toggleMobileMenu" class="fixed z-50 bottom-6 right-6 lg:hidden bg-blue-600 text-white p-4 rounded-full shadow-2xl hover:bg-blue-700 transition-all active:scale-90">
     <Icon name="heroicons:bars-3" class="w-6 h-6" />
   </button>
 
-  <!--
-      SIDEBAR LOGIC BARU (ANTI BENTROK)
-      1. !isMobile: Atur lebar w-20 atau w-64.
-      2. isMobile: Pakai fixed position & width tetap w-64.
-      3. Transisi: translate-x buat efek slide di HP.
-    -->
+  <!-- SIDEBAR CONTAINER -->
   <aside
     class="bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 flex flex-col h-full transition-all duration-300 ease-in-out z-40"
-    :class="[
-      // LOGIKA DESKTOP (Width Dinamis)
-      !isMobile ? (isCollapsed ? 'w-20' : 'w-64') : '',
-
-      // LOGIKA MOBILE (Posisi & Width Tetap)
-      isMobile ? 'fixed inset-y-0 left-0 shadow-2xl w-64' : '',
-
-      // LOGIKA BUKA/TUTUP (Slide Animation)
-      isMobile ? (isMobileOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0',
-    ]"
+    :class="[isMobile ? 'w-64' : isCollapsed ? 'w-20' : 'w-64', isMobile ? 'fixed inset-y-0 left-0 shadow-2xl' : 'static', isMobile ? (isMobileOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0']"
   >
     <!-- HEADER -->
-    <div class="flex items-center justify-between p-6 h-20">
+    <div class="flex transition-all duration-300" :class="isCollapsed && !isMobile ? 'flex-col justify-center gap-4 py-6' : 'flex-row items-center justify-between p-6'" :style="{ height: '80px' }">
       <!-- Logo Area -->
       <div class="flex items-center gap-3 overflow-hidden whitespace-nowrap">
         <div class="bg-blue-600 text-white p-1.5 rounded-lg shrink-0 transition-all shadow-md shadow-blue-500/20">
           <Icon name="heroicons:shield-check-solid" class="w-7 h-7" />
         </div>
+        <!-- Teks MediSecure: Hilang kalau Desktop Collapsed -->
         <span v-show="!isCollapsed || isMobile" class="text-xl font-extrabold text-slate-800 dark:text-white tracking-tight transition-opacity duration-300"> MediSecure </span>
       </div>
 
-      <!-- Toggle Button (Desktop Only) -->
+      <!-- Toggle Button (Hanya Desktop) -->
       <button v-if="!isMobile" @click="toggleSidebar" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-blue-600 transition-colors">
         <Icon :name="isCollapsed ? 'heroicons:chevron-double-right' : 'heroicons:bars-3-bottom-left'" class="w-5 h-5" />
       </button>
 
-      <!-- Close Button (Mobile Only) -->
+      <!-- Close Button (Hanya Mobile) -->
       <button v-if="isMobile" @click="toggleMobileMenu" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-red-500">
         <Icon name="heroicons:x-mark" class="w-6 h-6" />
       </button>
@@ -94,6 +82,8 @@ const toggleMobileMenu = () => (isMobileOpen.value = !isMobileOpen.value);
         :title="isCollapsed ? item.name : ''"
       >
         <Icon :name="item.icon" class="w-6 h-6 shrink-0 transition-colors group-hover:text-blue-600 dark:group-hover:text-blue-400" />
+
+        <!-- Text Menu: Hilang kalau Desktop Collapsed -->
         <span v-show="!isCollapsed || isMobile" class="font-medium transition-opacity duration-300">
           {{ item.name }}
         </span>
@@ -126,7 +116,6 @@ const toggleMobileMenu = () => (isMobileOpen.value = !isMobileOpen.value);
     </div>
   </aside>
 
-  <!-- OVERLAY GELAP (Saat Menu Mobile Terbuka) -->
   <div v-if="isMobile && isMobileOpen" @click="toggleMobileMenu" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 lg:hidden"></div>
 </template>
 

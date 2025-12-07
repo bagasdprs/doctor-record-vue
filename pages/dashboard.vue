@@ -71,7 +71,7 @@ const appointments = [
     <!-- 2. WELCOME HEADER -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
       <div>
-        <h1 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-1 md:mb-2">Welcome back, {{ currentUser?.name ? currentUser.name.split(" ")[0] : "Doc" }}</h1>
+        <h1 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-1 md:mb-2">Welcome back, {{ currentUser?.name || "Doc" }}</h1>
         <p class="text-slate-500 dark:text-slate-400 text-sm md:text-base">Here's a summary of your activities for today.</p>
       </div>
 
