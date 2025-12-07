@@ -29,18 +29,18 @@ export const doctors = pgTable("doctors", {
 // --- 2. TABEL PASIEN (patients) ---
 export const patients = pgTable("patients", {
   id: uuid("id").defaultRandom().primaryKey(),
-
-  // Info Pasien
   name: text("name").notNull(),
-  nik: text("nik").unique(), // Nomor KTP (Opsional tapi unik)
+  nik: text("nik").unique(),
+  bpjsNumber: text("bpjs_number"),
+
+  // TAMBAHKAN INI:
+  phone: text("phone"),
+
+  avatarUrl: text("avatar_url"),
   gender: text("gender"),
   birthDate: timestamp("birth_date"),
   address: text("address"),
-
-  // Relasi: Pasien ini milik Dokter siapa?
-  // (Menyimpan ID Dokter sebagai referensi)
   doctorId: uuid("doctor_id").references(() => doctors.id),
-
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

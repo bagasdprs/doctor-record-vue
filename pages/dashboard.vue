@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { useAuthStore } from "~/stores/auth";
-import { storeToRefs } from "pinia";
 
 // 1. Definisikan Interface User
 interface User {
@@ -13,27 +12,66 @@ interface User {
 
 const authStore = useAuthStore();
 
+// Casting tipe data user dari store
 const currentUser = computed(() => authStore.user as User | null);
 
-// Data Statistik
-const stats = [
-  { title: "Total Patients", value: "284", icon: "heroicons:users", bg: "bg-blue-50 dark:bg-blue-900/20" },
-  { title: "Consultations Today", value: "12", icon: "heroicons:chat-bubble-left-right", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
-  { title: "Pending AI Summaries", value: "3", icon: "heroicons:cpu-chip", bg: "bg-purple-50 dark:bg-purple-900/20" },
-];
+// --- REAL-TIME DATA LOGIC ---
+const isLoading = ref(true);
 
-const appointments = [
-  { id: 1, name: "Olivia Chen", pid: "ID: PT789012", time: "10:30 AM", image: "https://i.pravatar.cc/150?u=olivia", status: "Upcoming" },
-  { id: 2, name: "Benjamin Carter", pid: "ID: PT456789", time: "11:15 AM", image: "https://i.pravatar.cc/150?u=ben", status: "Upcoming" },
-  { id: 3, name: "Sophia Rodriguez", pid: "Last seen: 2023-10-15", time: null, image: "https://i.pravatar.cc/150?u=sophia", status: "None" },
-];
+// State Statistik (Nilai awal 0 semua)
+const stats = ref([
+  { title: "Total Patients", value: "0", icon: "heroicons:users", bg: "bg-blue-50 dark:bg-blue-900/20" },
+  { title: "Consultations Today", value: "0", icon: "heroicons:chat-bubble-left-right", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
+  { title: "Pending AI Summaries", value: "0", icon: "heroicons:cpu-chip", bg: "bg-purple-50 dark:bg-purple-900/20" },
+]);
+
+// State Appointments
+const appointments = ref<any[]>([]);
+
+// Fungsi Fetch Data dari API Dashboard
+const fetchDashboardData = async () => {
+  isLoading.value = true;
+  try {
+    console.log("🔄 Fetching dashboard data..."); // Cek Console Browser
+
+    // Panggil API stats
+    const res = await $fetch<any>("/api/dashboard/stats");
+
+    console.log("✅ Dashboard Data:", res); // Liat isinya di Console
+
+    if (res.success) {
+      // Update Kartu Statistik (Pakai Optional Chaining ?. biar gak error kalau null)
+      stats.value[0].value = res.stats?.totalPatients?.toString() || "0";
+      stats.value[1].value = res.stats?.consultationsToday?.toString() || "0";
+      stats.value[2].value = res.stats?.pendingSummary?.toString() || "0";
+
+      // Update List Appointment
+      appointments.value = res.appointments || [];
+    }
+  } catch (error) {
+    console.error("❌ Gagal load dashboard:", error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// Format Jam (Contoh: 10:30 AM)
+const formatTime = (dateString: string) => {
+  if (!dateString) return "-";
+  const date = new Date(dateString);
+  return date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+};
+
+// Panggil saat halaman dibuka
+onMounted(() => {
+  fetchDashboardData();
+});
 </script>
 
 <template>
   <div class="min-h-screen">
-    <!-- 1. TOP BAR (Responsive: Stack di HP, Row di Desktop) -->
+    <!-- 1. TOP BAR -->
     <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 md:mb-10">
-      <!-- Search Bar (Full width di HP, Fixed di Desktop) -->
       <div class="relative w-full md:w-96">
         <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
           <Icon name="heroicons:magnifying-glass" class="text-slate-400 w-5 h-5" />
@@ -45,15 +83,12 @@ const appointments = [
         />
       </div>
 
-      <!-- Profile Section -->
       <div class="flex items-center justify-between w-full md:w-auto gap-4">
-        <!-- Notifikasi (Kiri di HP) -->
         <button class="relative p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition">
           <Icon name="heroicons:bell" class="w-6 h-6" />
           <span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>
         </button>
 
-        <!-- User Info -->
         <div class="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-700">
           <img :src="currentUser?.avatar || 'https://i.pravatar.cc/150?u=default'" class="w-10 h-10 rounded-full object-cover border-2 border-white dark:border-slate-700 shadow-sm" alt="Doctor" />
           <div class="hidden sm:block text-right md:text-left">
@@ -75,22 +110,22 @@ const appointments = [
         <p class="text-slate-500 dark:text-slate-400 text-sm md:text-base">Here's a summary of your activities for today.</p>
       </div>
 
-      <!-- Secure Badge (Tetap di kanan atau wrap) -->
       <div class="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 rounded-full text-xs font-bold border border-emerald-100 dark:border-emerald-800 self-start md:self-auto">
         <Icon name="heroicons:lock-closed-solid" class="w-3 h-3" />
         <span>Secure Connection</span>
       </div>
     </div>
 
-    <!-- 3. STATS CARDS (Grid: 1 Col HP -> 3 Col Desktop) -->
+    <!-- 3. STATS CARDS -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
-      <div v-for="stat in stats" :key="stat.title" class="bg-slate-50 dark:bg-slate-800 p-5 md:p-6 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center justify-between">
+      <div v-for="stat in stats" :key="stat.title" class="bg-slate-50 dark:bg-slate-800 p-5 md:p-6 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center justify-between transition hover:shadow-md">
         <div>
           <p class="text-slate-500 dark:text-slate-400 font-medium mb-1 text-sm">{{ stat.title }}</p>
-          <h3 class="text-3xl md:text-4xl font-bold text-slate-800 dark:text-white">{{ stat.value }}</h3>
+          <!-- Skeleton Loader -->
+          <div v-if="isLoading" class="h-8 w-16 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
+          <h3 v-else class="text-3xl md:text-4xl font-bold text-slate-800 dark:text-white">{{ stat.value }}</h3>
         </div>
-        <!-- Icon Stat (Opsional: Tambahan visual) -->
-        <div class="w-12 h-12 rounded-xl flex items-center justify-center text-slate-400 bg-white dark:bg-slate-700/50 shadow-sm">
+        <div :class="`w-12 h-12 rounded-xl flex items-center justify-center text-slate-400 shadow-sm ${stat.bg}`">
           <Icon :name="stat.icon" class="w-6 h-6" />
         </div>
       </div>
@@ -111,39 +146,47 @@ const appointments = [
     <!-- 5. APPOINTMENTS SECTION -->
     <div class="mb-4 md:mb-6 flex justify-between items-center">
       <h3 class="text-lg md:text-xl font-bold text-slate-800 dark:text-white">Today's Appointments</h3>
-      <button class="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-lg text-slate-600 dark:text-slate-400 transition">
-        <Icon name="heroicons:adjustments-horizontal" class="w-5 h-5" />
+      <!-- Tombol Refresh Data -->
+      <button @click="fetchDashboardData" class="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-lg text-slate-600 dark:text-slate-400 transition" title="Refresh Data">
+        <Icon name="heroicons:arrow-path" class="w-5 h-5" :class="{ 'animate-spin': isLoading }" />
       </button>
     </div>
 
-    <!-- Appointments Grid (1 Col HP -> 2 Col Tablet -> 3 Col Desktop) -->
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 pb-20 md:pb-0">
-      <div v-for="patient in appointments" :key="patient.id" class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition">
+    <!-- Appointments Grid -->
+
+    <!-- STATE: Loading -->
+    <div v-if="isLoading" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
+      <div v-for="i in 3" :key="i" class="h-48 bg-slate-100 dark:bg-slate-800 rounded-2xl animate-pulse"></div>
+    </div>
+
+    <!-- STATE: Kosong -->
+    <div v-else-if="appointments.length === 0" class="text-center py-12 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700">
+      <Icon name="heroicons:calendar" class="w-12 h-12 text-slate-300 mx-auto mb-3" />
+      <p class="text-slate-500">No appointments scheduled for today.</p>
+      <NuxtLink to="/patients" class="text-blue-600 font-bold hover:underline text-sm mt-2 block">Check In a Patient</NuxtLink>
+    </div>
+
+    <!-- STATE: Ada Data -->
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 pb-20 md:pb-0">
+      <div v-for="apt in appointments" :key="apt.id" class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition">
         <div class="flex items-start gap-4 mb-4">
-          <img :src="patient.image" class="w-12 h-12 rounded-full object-cover" />
+          <img :src="apt.avatarUrl || 'https://i.pravatar.cc/150?u=default'" class="w-12 h-12 rounded-full object-cover" />
           <div>
-            <h4 class="font-bold text-slate-900 dark:text-white">{{ patient.name }}</h4>
-            <p class="text-xs text-slate-400 font-mono">{{ patient.pid }}</p>
+            <h4 class="font-bold text-slate-900 dark:text-white">{{ apt.patientName }}</h4>
+            <p class="text-xs text-slate-400 font-mono">ID: {{ apt.patientId || "-" }}</p>
           </div>
-          <button class="ml-auto text-slate-400 hover:text-blue-600">
-            <Icon name="heroicons:user" class="w-5 h-5" />
-          </button>
         </div>
 
-        <div v-if="patient.time" class="bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 mb-4">
+        <div class="bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 mb-4">
           <Icon name="heroicons:clock" class="w-4 h-4" />
-          <span>Appointment at {{ patient.time }}</span>
-        </div>
-        <div v-else class="bg-slate-50 dark:bg-slate-700/50 text-slate-400 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 mb-4">
-          <Icon name="heroicons:calendar" class="w-4 h-4" />
-          <span>No upcoming appointment</span>
+          <!-- Tampilkan Jam Real -->
+          <span>Checked In at {{ formatTime(apt.time) }}</span>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
-          <button class="px-4 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-300 font-medium text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition">View Profile</button>
+          <button class="px-4 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-300 font-medium text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition">View</button>
 
-          <NuxtLink v-if="patient.time" to="/consultation/live-record" class="flex justify-center items-center px-4 py-2 bg-teal-600 text-white rounded-lg font-medium text-sm hover:bg-teal-700 shadow-sm transition"> Start </NuxtLink>
-          <button v-else class="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-400 rounded-lg font-medium text-sm cursor-not-allowed">Start</button>
+          <NuxtLink :to="`/consultation/live-record?sessionId=${apt.id}`" class="flex justify-center items-center px-4 py-2 bg-teal-600 text-white rounded-lg font-medium text-sm hover:bg-teal-700 shadow-sm transition"> Continue </NuxtLink>
         </div>
       </div>
     </div>
