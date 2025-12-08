@@ -1,15 +1,14 @@
 <script setup lang="ts">
 import { useAuthStore } from "~/stores/auth";
 
-definePageMeta({
-  layout: "default",
-});
+definePageMeta({ layout: "default" });
 
-const authStore = useAuthStore() as { user: { email: string } | null };
+const authStore = useAuthStore();
 const activeTab = ref("profile");
 const isLoading = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 
+// State Form (avatarFile untuk menyimpan file mentah yang akan diupload)
 const form = reactive({
   fullName: "",
   specialization: "",
@@ -20,53 +19,56 @@ const form = reactive({
   birthDate: "",
   address: "",
   bio: "",
-  avatarUrl: "",
+  avatarUrl: "", // Untuk preview di layar
+  avatarFile: null as File | null, // Untuk dikirim ke server
 });
 
-const triggerFileInput = () => {
-  fileInput.value?.click();
-};
+// Helper: Trigger klik input file
+const triggerFileInput = () => fileInput.value?.click();
 
+// Helper: Handle saat file dipilih
 const handleFileChange = (event: Event) => {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
+
   if (file) {
-    if (file.size > 2 * 1024 * 1024) {
-      alert("Ukuran file terlalu besar! Maksimal 2MB.");
+    // Validasi 5MB
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Ukuran foto terlalu besar! Maksimal 5MB.");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      if (e.target?.result) form.avatarUrl = e.target.result as string;
-    };
-    reader.readAsDataURL(file);
+
+    // Simpan file mentah ke state (untuk dikirim nanti)
+    form.avatarFile = file;
+
+    // Buat preview lokal (biar user bisa lihat fotonya sebelum di-save)
+    form.avatarUrl = URL.createObjectURL(file);
   }
 };
 
+// Ambil data profil saat load
 const fetchProfile = async () => {
   const currentUserEmail = authStore.user?.email;
   if (!currentUserEmail) return;
+
   try {
     const res = await $fetch<any>("/api/doctors/profile", {
       method: "POST",
       body: { email: currentUserEmail },
     });
     if (res.success && res.data) {
-      form.fullName = res.data.fullName;
-      form.specialization = res.data.specialization || "";
-      form.email = res.data.email;
-      form.phone = res.data.phone || "";
-      form.medicalId = res.data.medicalId;
-      form.gender = res.data.gender || "Male";
-      form.address = res.data.address || "";
-      form.bio = res.data.bio || "";
-      form.avatarUrl = res.data.avatarUrl || "";
+      // Copy data dari DB ke Form
+      Object.assign(form, res.data);
+
+      // Format tanggal
       if (res.data.birthDate) {
         form.birthDate = new Date(res.data.birthDate).toISOString().split("T")[0] ?? "";
       }
+      // Reset file mentah (karena belum ada upload baru)
+      form.avatarFile = null;
     }
   } catch (error) {
-    console.error("Gagal mengambil profil:", error);
+    console.error("Gagal ambil profil:", error);
   }
 };
 
@@ -74,20 +76,45 @@ onMounted(() => {
   fetchProfile();
 });
 
+// FUNGSI SAVE DENGAN FORMDATA (UPDATED)
 const saveChanges = async () => {
   isLoading.value = true;
+
+  // 1. Bungkus data ke dalam FormData (Bukan JSON lagi)
+  const formData = new FormData();
+  formData.append("email", form.email); // Wajib sebagai kunci ID
+  formData.append("fullName", form.fullName);
+  formData.append("specialization", form.specialization);
+  formData.append("phone", form.phone);
+  formData.append("bio", form.bio);
+  formData.append("address", form.address);
+  formData.append("gender", form.gender);
+  formData.append("birthDate", form.birthDate);
+
+  // 2. Kalau ada file foto baru, masukkan ke paket
+  if (form.avatarFile) {
+    formData.append("avatarFile", form.avatarFile);
+  }
+
   try {
+    // 3. Kirim FormData (Browser otomatis mengatur header Multipart)
     const res = await $fetch<any>("/api/doctors/update", {
       method: "POST",
-      body: { ...form },
+      body: formData,
     });
+
     if (res.success) {
-      alert("Profile updated successfully!");
+      alert("Profil berhasil disimpan!");
+
+      // Paksa refresh data user di store biar foto di header/sidebar berubah
+      await authStore.fetchUserProfile();
+
+      // Refresh form lokal
       fetchProfile();
     }
   } catch (error: any) {
     console.error("Gagal update:", error);
-    alert(error.statusMessage || "Failed to update profile.");
+    alert(error.statusMessage || "Gagal menyimpan profil.");
   } finally {
     isLoading.value = false;
   }
@@ -109,11 +136,9 @@ const menuItems = [
       <p class="text-slate-500 dark:text-slate-400 mt-1 text-sm md:text-base">Manage your personal info, preferences, and security.</p>
     </div>
 
-    <!-- Layout Grid Responsive -->
-    <!-- Di HP: 1 Kolom (Stack). Di LG: 4 Kolom (Menu Kiri, Konten Kanan) -->
+    <!-- Layout Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8 items-start">
       <!-- SIDEBAR MENU -->
-      <!-- PERBAIKAN: Gunakan flex-col di desktop agar gap berfungsi -->
       <div class="lg:col-span-1">
         <nav class="flex lg:flex-col overflow-x-auto lg:overflow-visible gap-2 lg:gap-2 pb-2 lg:pb-0 scrollbar-hide">
           <button
@@ -137,9 +162,11 @@ const menuItems = [
       <div class="lg:col-span-3 space-y-6">
         <!-- === TAB: MY PROFILE === -->
         <div v-if="activeTab === 'profile'" class="space-y-6">
-          <!-- Card 1: Header Profile (Stack di HP) -->
+          <!-- Card 1: Header Profile -->
           <div class="bg-white dark:bg-slate-800 p-5 md:p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
-            <img :src="form.avatarUrl || 'https://i.pravatar.cc/150?u=default'" class="w-24 h-24 rounded-full object-cover border-4 border-slate-50 dark:border-slate-700 shadow-sm" alt="Profile" />
+            <!-- PREVIEW FOTO -->
+            <!-- Kita pakai object-cover biar gak gepeng, dan background slate biar kalau transparan gak aneh -->
+            <img :src="form.avatarUrl || 'https://i.pravatar.cc/150?u=default'" class="w-24 h-24 rounded-full object-cover border-4 border-slate-50 dark:border-slate-700 shadow-sm bg-slate-100" alt="Profile" />
 
             <div class="flex-1">
               <h3 class="text-xl font-bold text-slate-900 dark:text-white">{{ form.fullName || "Loading..." }}</h3>
@@ -148,7 +175,9 @@ const menuItems = [
             </div>
 
             <div>
+              <!-- Input File Tersembunyi -->
               <input type="file" ref="fileInput" accept="image/*" class="hidden" @change="handleFileChange" />
+
               <button
                 @click="triggerFileInput"
                 class="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium rounded-lg text-sm hover:bg-slate-200 dark:hover:bg-slate-600 transition flex items-center gap-2"
@@ -164,7 +193,6 @@ const menuItems = [
             <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-6">Personal Information</h3>
 
             <form @submit.prevent="saveChanges" class="space-y-5 md:space-y-6">
-              <!-- Responsive Grid: 1 Col di HP, 2 Col di Desktop -->
               <div class="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                 <div>
                   <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Full Name</label>
@@ -184,6 +212,7 @@ const menuItems = [
                 </div>
               </div>
 
+              <!-- Email (Disabled) & Phone -->
               <div class="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                 <div>
                   <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Email Address</label>
@@ -199,6 +228,7 @@ const menuItems = [
                 </div>
               </div>
 
+              <!-- Medical ID (Disabled) & Gender -->
               <div class="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
                 <div>
                   <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Medical ID / STR</label>
@@ -216,6 +246,7 @@ const menuItems = [
                 </div>
               </div>
 
+              <!-- Birth Date -->
               <div>
                 <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Birth Date</label>
                 <input
@@ -225,6 +256,7 @@ const menuItems = [
                 />
               </div>
 
+              <!-- Address -->
               <div>
                 <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Clinic / Home Address</label>
                 <textarea
@@ -234,6 +266,7 @@ const menuItems = [
                 ></textarea>
               </div>
 
+              <!-- Bio -->
               <div>
                 <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Professional Bio</label>
                 <textarea
@@ -257,7 +290,7 @@ const menuItems = [
           </div>
         </div>
 
-        <!-- Placeholder Tabs -->
+        <!-- ... (Tab Preferences & Security Biarkan Saja) ... -->
         <div v-if="activeTab === 'preferences'" class="bg-white dark:bg-slate-800 p-8 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm text-center py-20">
           <div class="bg-blue-50 dark:bg-slate-700 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
             <Icon name="heroicons:adjustments-horizontal" class="w-8 h-8 text-blue-500" />

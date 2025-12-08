@@ -14,10 +14,8 @@ const isMobileOpen = ref(false); // Mode Mobile (Buka/Tutup)
 
 // Window Resize Logic
 const { width } = useWindowSize();
-// Kita anggap Mobile jika lebar layar < 1024px (LG)
 const isMobile = computed(() => width.value < 1024);
 
-// Otomatis tutup sidebar mobile saat pindah halaman
 watch(
   () => route.path,
   () => {
@@ -38,7 +36,7 @@ const toggleMobileMenu = () => (isMobileOpen.value = !isMobileOpen.value);
 </script>
 
 <template>
-  <!-- TOMBOL HAMBURGER MOBILE (Hanya muncul di HP/Tablet) -->
+  <!-- TOMBOL HAMBURGER MOBILE -->
   <button v-if="isMobile && !isMobileOpen" @click="toggleMobileMenu" class="fixed z-50 bottom-6 right-6 lg:hidden bg-blue-600 text-white p-4 rounded-full shadow-2xl hover:bg-blue-700 transition-all active:scale-90">
     <Icon name="heroicons:bars-3" class="w-6 h-6" />
   </button>
@@ -50,21 +48,19 @@ const toggleMobileMenu = () => (isMobileOpen.value = !isMobileOpen.value);
   >
     <!-- HEADER -->
     <div class="flex transition-all duration-300" :class="isCollapsed && !isMobile ? 'flex-col justify-center gap-4 py-6' : 'flex-row items-center justify-between p-6'" :style="{ height: '80px' }">
-      <!-- Logo Area -->
       <div class="flex items-center gap-3 overflow-hidden whitespace-nowrap">
         <div class="bg-blue-600 text-white p-1.5 rounded-lg shrink-0 transition-all shadow-md shadow-blue-500/20">
           <Icon name="heroicons:shield-check-solid" class="w-7 h-7" />
         </div>
-        <!-- Teks MediSecure: Hilang kalau Desktop Collapsed -->
         <span v-show="!isCollapsed || isMobile" class="text-xl font-extrabold text-slate-800 dark:text-white tracking-tight transition-opacity duration-300"> MediSecure </span>
       </div>
 
-      <!-- Toggle Button (Hanya Desktop) -->
+      <!-- Toggle Button -->
       <button v-if="!isMobile" @click="toggleSidebar" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-blue-600 transition-colors">
         <Icon :name="isCollapsed ? 'heroicons:chevron-double-right' : 'heroicons:bars-3-bottom-left'" class="w-5 h-5" />
       </button>
 
-      <!-- Close Button (Hanya Mobile) -->
+      <!-- Close Button -->
       <button v-if="isMobile" @click="toggleMobileMenu" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-red-500">
         <Icon name="heroicons:x-mark" class="w-6 h-6" />
       </button>
@@ -82,8 +78,6 @@ const toggleMobileMenu = () => (isMobileOpen.value = !isMobileOpen.value);
         :title="isCollapsed ? item.name : ''"
       >
         <Icon :name="item.icon" class="w-6 h-6 shrink-0 transition-colors group-hover:text-blue-600 dark:group-hover:text-blue-400" />
-
-        <!-- Text Menu: Hilang kalau Desktop Collapsed -->
         <span v-show="!isCollapsed || isMobile" class="font-medium transition-opacity duration-300">
           {{ item.name }}
         </span>
@@ -92,17 +86,24 @@ const toggleMobileMenu = () => (isMobileOpen.value = !isMobileOpen.value);
 
     <!-- FOOTER -->
     <div class="p-4 space-y-4 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
-      <button
-        @click="toggleDark()"
-        class="flex items-center gap-3 w-full px-3 py-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all font-medium whitespace-nowrap"
-        :class="isCollapsed && !isMobile ? 'justify-center' : ''"
-        :title="isDark ? 'Switch to Light' : 'Switch to Dark'"
-      >
-        <Icon :name="isDark ? 'heroicons:moon-solid' : 'heroicons:sun-solid'" class="w-6 h-6 shrink-0 text-orange-500 dark:text-blue-400" />
-        <span v-show="!isCollapsed || isMobile">
-          {{ isDark ? "Dark Mode" : "Light Mode" }}
-        </span>
-      </button>
+      <ClientOnly>
+        <button
+          @click="toggleDark()"
+          class="flex items-center gap-3 w-full px-3 py-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all font-medium whitespace-nowrap"
+          :class="isCollapsed && !isMobile ? 'justify-center' : ''"
+          :title="isDark ? 'Switch to Light' : 'Switch to Dark'"
+        >
+          <Icon :name="isDark ? 'heroicons:moon-solid' : 'heroicons:sun-solid'" class="w-6 h-6 shrink-0 text-orange-500 dark:text-blue-400" />
+          <span v-show="!isCollapsed || isMobile">
+            {{ isDark ? "Dark Mode" : "Light Mode" }}
+          </span>
+        </button>
+
+        <!-- Fallback saat loading (Opsional, biar gak kosong banget) -->
+        <template #fallback>
+          <div class="h-10 w-full bg-slate-100 dark:bg-slate-800 rounded-xl animate-pulse"></div>
+        </template>
+      </ClientOnly>
 
       <button
         @click="logout"
@@ -116,6 +117,7 @@ const toggleMobileMenu = () => (isMobileOpen.value = !isMobileOpen.value);
     </div>
   </aside>
 
+  <!-- OVERLAY GELAP -->
   <div v-if="isMobile && isMobileOpen" @click="toggleMobileMenu" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 lg:hidden"></div>
 </template>
 

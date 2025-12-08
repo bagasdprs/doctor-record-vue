@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useAuthStore } from "~/stores/auth";
+import { storeToRefs } from "pinia";
 
 // 1. Definisikan Interface User
 interface User {
@@ -10,62 +11,84 @@ interface User {
   avatar?: string;
 }
 
-const authStore = useAuthStore();
+// 2. Interface Response API
+interface DashboardResponse {
+  success: boolean;
+  stats?: {
+    totalPatients: number;
+    consultationsToday: number;
+    pendingSummary: number;
+  };
+  appointments?: any[];
+}
 
-// Casting tipe data user dari store
+const authStore = useAuthStore();
+const { user } = storeToRefs(authStore);
+
+// Casting tipe data user
 const currentUser = computed(() => authStore.user as User | null);
 
-// --- REAL-TIME DATA LOGIC ---
-const isLoading = ref(true);
+// --- USER LOADING STATE ---
+const isUserLoading = ref(true);
 
-// State Statistik (Nilai awal 0 semua)
-const stats = ref([
+onMounted(() => {
+  // LOGIKA PERBAIKAN:
+  // Cek apakah Avatar sudah ada? (Bukan cuma Nama)
+  // Kalau avatar kosong, kemungkinan kita cuma punya data Cookie (Lite), jadi harus Fetch ulang.
+  if (currentUser.value?.avatar) {
+    isUserLoading.value = false;
+  } else {
+    // Paksa ambil data lengkap (Foto, Bio, dll) dari DB
+    authStore.fetchUserProfile().finally(() => {
+      isUserLoading.value = false;
+    });
+
+    // Safety net: Stop loading setelah 3 detik kalau sinyal jelek
+    setTimeout(() => {
+      isUserLoading.value = false;
+    }, 3000);
+  }
+
+  fetchDashboardData();
+});
+
+// --- REAL-TIME DATA LOGIC ---
+const isDashboardLoading = ref(true);
+
+// Definisikan tipe array stats biar TS gak bingung
+const stats = ref<{ title: string; value: string; icon: string; bg: string }[]>([
   { title: "Total Patients", value: "0", icon: "heroicons:users", bg: "bg-blue-50 dark:bg-blue-900/20" },
   { title: "Consultations Today", value: "0", icon: "heroicons:chat-bubble-left-right", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
   { title: "Pending AI Summaries", value: "0", icon: "heroicons:cpu-chip", bg: "bg-purple-50 dark:bg-purple-900/20" },
 ]);
 
-// State Appointments
 const appointments = ref<any[]>([]);
 
-// Fungsi Fetch Data dari API Dashboard
 const fetchDashboardData = async () => {
-  isLoading.value = true;
+  isDashboardLoading.value = true;
   try {
-    console.log("🔄 Fetching dashboard data..."); // Cek Console Browser
+    const res = await $fetch<DashboardResponse>("/api/dashboard/stats");
 
-    // Panggil API stats
-    const res = await $fetch<any>("/api/dashboard/stats");
+    if (res.success && res.stats) {
+      // Update nilai stats dengan aman
+      stats.value[0].value = String(res.stats.totalPatients ?? 0);
+      stats.value[1].value = String(res.stats.consultationsToday ?? 0);
+      stats.value[2].value = String(res.stats.pendingSummary ?? 0);
 
-    console.log("✅ Dashboard Data:", res); // Liat isinya di Console
-
-    if (res.success) {
-      // Update Kartu Statistik (Pakai Optional Chaining ?. biar gak error kalau null)
-      stats.value[0].value = res.stats?.totalPatients?.toString() || "0";
-      stats.value[1].value = res.stats?.consultationsToday?.toString() || "0";
-      stats.value[2].value = res.stats?.pendingSummary?.toString() || "0";
-
-      // Update List Appointment
       appointments.value = res.appointments || [];
     }
   } catch (error) {
-    console.error("❌ Gagal load dashboard:", error);
+    console.error("Gagal load dashboard:", error);
   } finally {
-    isLoading.value = false;
+    isDashboardLoading.value = false;
   }
 };
 
-// Format Jam (Contoh: 10:30 AM)
 const formatTime = (dateString: string) => {
   if (!dateString) return "-";
   const date = new Date(dateString);
   return date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
 };
-
-// Panggil saat halaman dibuka
-onMounted(() => {
-  fetchDashboardData();
-});
 </script>
 
 <template>
@@ -90,14 +113,26 @@ onMounted(() => {
         </button>
 
         <div class="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-700">
-          <img :src="currentUser?.avatar || 'https://i.pravatar.cc/150?u=default'" class="w-10 h-10 rounded-full object-cover border-2 border-white dark:border-slate-700 shadow-sm" alt="Doctor" />
-          <div class="hidden sm:block text-right md:text-left">
-            <h4 class="text-sm font-bold text-slate-800 dark:text-white leading-tight">
-              {{ currentUser?.name || "Doctor" }}
-            </h4>
-            <p class="text-xs text-slate-500 dark:text-slate-400">
-              {{ currentUser?.specialization || "Specialist" }}
-            </p>
+          <!-- SKELETON LOADER (Muncul saat isUserLoading = true) -->
+          <div v-if="isUserLoading" class="flex items-center gap-3 animate-pulse">
+            <div class="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700"></div>
+            <div class="space-y-2">
+              <div class="h-3 w-20 bg-slate-200 dark:bg-slate-700 rounded"></div>
+              <div class="h-2 w-16 bg-slate-200 dark:bg-slate-700 rounded"></div>
+            </div>
+          </div>
+
+          <!-- DATA ASLI -->
+          <div v-else class="flex items-center gap-3">
+            <img :src="currentUser?.avatar || 'https://i.pravatar.cc/150?u=default'" class="w-10 h-10 rounded-full object-cover border-2 border-white dark:border-slate-700 shadow-sm" alt="Doctor" />
+            <div class="hidden sm:block text-right md:text-left">
+              <h4 class="text-sm font-bold text-slate-800 dark:text-white leading-tight">
+                {{ currentUser?.name || "Doctor" }}
+              </h4>
+              <p class="text-xs text-slate-500 dark:text-slate-400">
+                {{ currentUser?.specialization || "Specialist" }}
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -106,7 +141,11 @@ onMounted(() => {
     <!-- 2. WELCOME HEADER -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
       <div>
-        <h1 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-1 md:mb-2">Welcome back, {{ currentUser?.name || "Doc" }}</h1>
+        <h1 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-1 md:mb-2 flex items-center gap-2">
+          Welcome back,
+          <span v-if="isUserLoading" class="h-8 w-32 bg-slate-200 dark:bg-slate-700 rounded animate-pulse inline-block"></span>
+          <span v-else>{{ currentUser?.name || "Doc" }}</span>
+        </h1>
         <p class="text-slate-500 dark:text-slate-400 text-sm md:text-base">Here's a summary of your activities for today.</p>
       </div>
 
@@ -121,8 +160,7 @@ onMounted(() => {
       <div v-for="stat in stats" :key="stat.title" class="bg-slate-50 dark:bg-slate-800 p-5 md:p-6 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center justify-between transition hover:shadow-md">
         <div>
           <p class="text-slate-500 dark:text-slate-400 font-medium mb-1 text-sm">{{ stat.title }}</p>
-          <!-- Skeleton Loader -->
-          <div v-if="isLoading" class="h-8 w-16 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
+          <div v-if="isDashboardLoading" class="h-8 w-16 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
           <h3 v-else class="text-3xl md:text-4xl font-bold text-slate-800 dark:text-white">{{ stat.value }}</h3>
         </div>
         <div :class="`w-12 h-12 rounded-xl flex items-center justify-center text-slate-400 shadow-sm ${stat.bg}`">
@@ -146,27 +184,22 @@ onMounted(() => {
     <!-- 5. APPOINTMENTS SECTION -->
     <div class="mb-4 md:mb-6 flex justify-between items-center">
       <h3 class="text-lg md:text-xl font-bold text-slate-800 dark:text-white">Today's Appointments</h3>
-      <!-- Tombol Refresh Data -->
       <button @click="fetchDashboardData" class="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-lg text-slate-600 dark:text-slate-400 transition" title="Refresh Data">
-        <Icon name="heroicons:arrow-path" class="w-5 h-5" :class="{ 'animate-spin': isLoading }" />
+        <Icon name="heroicons:arrow-path" class="w-5 h-5" :class="{ 'animate-spin': isDashboardLoading }" />
       </button>
     </div>
 
     <!-- Appointments Grid -->
-
-    <!-- STATE: Loading -->
-    <div v-if="isLoading" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
+    <div v-if="isDashboardLoading" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
       <div v-for="i in 3" :key="i" class="h-48 bg-slate-100 dark:bg-slate-800 rounded-2xl animate-pulse"></div>
     </div>
 
-    <!-- STATE: Kosong -->
     <div v-else-if="appointments.length === 0" class="text-center py-12 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700">
       <Icon name="heroicons:calendar" class="w-12 h-12 text-slate-300 mx-auto mb-3" />
       <p class="text-slate-500">No appointments scheduled for today.</p>
       <NuxtLink to="/patients" class="text-blue-600 font-bold hover:underline text-sm mt-2 block">Check In a Patient</NuxtLink>
     </div>
 
-    <!-- STATE: Ada Data -->
     <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 pb-20 md:pb-0">
       <div v-for="apt in appointments" :key="apt.id" class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition">
         <div class="flex items-start gap-4 mb-4">
@@ -179,7 +212,6 @@ onMounted(() => {
 
         <div class="bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 mb-4">
           <Icon name="heroicons:clock" class="w-4 h-4" />
-          <!-- Tampilkan Jam Real -->
           <span>Checked In at {{ formatTime(apt.time) }}</span>
         </div>
 
