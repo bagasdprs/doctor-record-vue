@@ -32,23 +32,16 @@ const currentUser = computed(() => authStore.user as User | null);
 const isUserLoading = ref(true);
 
 onMounted(() => {
-  // LOGIKA PERBAIKAN:
-  // Cek apakah Avatar sudah ada? (Bukan cuma Nama)
-  // Kalau avatar kosong, kemungkinan kita cuma punya data Cookie (Lite), jadi harus Fetch ulang.
   if (currentUser.value?.avatar) {
     isUserLoading.value = false;
   } else {
-    // Paksa ambil data lengkap (Foto, Bio, dll) dari DB
     authStore.fetchUserProfile().finally(() => {
       isUserLoading.value = false;
     });
-
-    // Safety net: Stop loading setelah 3 detik kalau sinyal jelek
     setTimeout(() => {
       isUserLoading.value = false;
     }, 3000);
   }
-
   fetchDashboardData();
 });
 
@@ -56,10 +49,36 @@ onMounted(() => {
 const isDashboardLoading = ref(true);
 
 // Definisikan tipe array stats biar TS gak bingung
-const stats = ref<{ title: string; value: string; icon: string; bg: string }[]>([
-  { title: "Total Patients", value: "0", icon: "heroicons:users", bg: "bg-blue-50 dark:bg-blue-900/20" },
-  { title: "Consultations Today", value: "0", icon: "heroicons:chat-bubble-left-right", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
-  { title: "Pending AI Summaries", value: "0", icon: "heroicons:cpu-chip", bg: "bg-purple-50 dark:bg-purple-900/20" },
+// const stats = ref<{ title: string; value: string; icon: string; bg: string }[]>([
+//   { title: "Total Patients", value: "0", icon: "heroicons:users", bg: "bg-blue-50 dark:bg-blue-900/20" },
+//   { title: "Consultations Today", value: "0", icon: "heroicons:chat-bubble-left-right", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
+//   { title: "Pending AI Summaries", value: "0", icon: "heroicons:cpu-chip", bg: "bg-purple-50 dark:bg-purple-900/20" },
+// ]);
+const stats = ref([
+  {
+    title: "Total Patients",
+    value: "0",
+    icon: "heroicons:users-solid",
+    cssClass: "from-emerald-50 to-white border-emerald-100 dark:from-emerald-900/30 dark:to-slate-800 dark:border-emerald-800",
+    textClass: "text-emerald-900 dark:text-emerald-100",
+    iconBg: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400",
+  },
+  {
+    title: "Consultations Today",
+    value: "0",
+    icon: "heroicons:clipboard-document-check-solid",
+    cssClass: "from-teal-50 to-white border-teal-100 dark:from-teal-900/30 dark:to-slate-800 dark:border-teal-800",
+    textClass: "text-teal-900 dark:text-teal-100",
+    iconBg: "bg-teal-100 text-teal-600 dark:bg-teal-500/20 dark:text-teal-400",
+  },
+  {
+    title: "Pending AI Summaries",
+    value: "0",
+    icon: "heroicons:sparkles-solid",
+    cssClass: "from-green-50 to-white border-green-100 dark:from-green-900/30 dark:to-slate-800 dark:border-green-800",
+    textClass: "text-green-900 dark:text-green-100",
+    iconBg: "bg-green-100 text-green-600 dark:bg-green-500/20 dark:text-green-400",
+  },
 ]);
 
 const appointments = ref<any[]>([]);
@@ -156,7 +175,7 @@ const formatTime = (dateString: string) => {
     </div>
 
     <!-- 3. STATS CARDS -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
+    <!-- <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
       <div v-for="stat in stats" :key="stat.title" class="bg-slate-50 dark:bg-slate-800 p-5 md:p-6 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center justify-between transition hover:shadow-md">
         <div>
           <p class="text-slate-500 dark:text-slate-400 font-medium mb-1 text-sm">{{ stat.title }}</p>
@@ -165,6 +184,21 @@ const formatTime = (dateString: string) => {
         </div>
         <div :class="`w-12 h-12 rounded-xl flex items-center justify-center text-slate-400 shadow-sm ${stat.bg}`">
           <Icon :name="stat.icon" class="w-6 h-6" />
+        </div>
+      </div>
+    </div> -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
+      <div v-for="stat in stats" :key="stat.title" class="relative p-5 md:p-6 rounded-2xl border shadow-sm flex items-center justify-between transition-all hover:shadow-md hover:scale-[1.01] bg-gradient-to-br" :class="stat.cssClass">
+        <div>
+          <p class="font-semibold mb-1 text-sm opacity-90" :class="stat.textClass">{{ stat.title }}</p>
+          <!-- Skeleton Loader -->
+          <div v-if="isDashboardLoading" class="h-8 w-16 bg-slate-200/50 dark:bg-slate-700/50 rounded animate-pulse"></div>
+          <h3 v-else class="text-3xl md:text-4xl font-extrabold tracking-tight" :class="stat.textClass">{{ stat.value }}</h3>
+        </div>
+
+        <!-- Icon Container -->
+        <div :class="`w-14 h-14 rounded-full flex items-center justify-center shadow-sm ${stat.iconBg}`">
+          <Icon :name="stat.icon" class="w-7 h-7" />
         </div>
       </div>
     </div>

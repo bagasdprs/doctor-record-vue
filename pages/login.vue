@@ -6,14 +6,22 @@ definePageMeta({
 });
 
 const authStore = useAuthStore();
+const { $swal } = useNuxtApp();
+
 const email = ref("");
 const password = ref("");
-const medicalId = ref("");
+// const medicalId = ref(""); // <--- SUDAHDIHAPUS
 const isLoading = ref(false);
 
 const handleLogin = async () => {
   if (!email.value || !password.value) {
-    alert("Isi email & password dulu ya, Dok!");
+    $swal.fire({
+      icon: "warning",
+      title: "Data belum lengkap!",
+      text: "Silakan isi email dan password Anda.",
+      confirmButtonText: "OK", // Perbaikan: Text tombol
+      confirmButtonColor: "#10b981", // Perbaikan: Warna tombol
+    });
     return;
   }
 
@@ -30,10 +38,27 @@ const handleLogin = async () => {
 
     authStore.setUser(response.user);
 
-    console.log("Login Sukses, User:", authStore.user);
-    navigateTo("/dashboard");
+    // Alert Sukses
+    $swal.fire({
+      icon: "success",
+      title: "Login Berhasil",
+      text: `Selamat datang, ${response.user.name}`,
+      timer: 1500,
+      showConfirmButton: false,
+      toast: true,
+      position: "top-end",
+    });
+
+    setTimeout(() => navigateTo("/dashboard"), 1500);
   } catch (error: any) {
-    alert(error.statusMessage || "Login Gagal.");
+    // Alert Error
+    $swal.fire({
+      icon: "error",
+      title: "Login Gagal",
+      text: error.statusMessage || "Email atau password salah.",
+      confirmButtonText: "Coba Lagi",
+      confirmButtonColor: "#ef4444",
+    });
   } finally {
     isLoading.value = false;
   }
@@ -85,21 +110,7 @@ const handleLogin = async () => {
         </div>
       </div>
 
-      <!-- Input Medical ID -->
-      <div>
-        <label class="block text-sm font-semibold text-emerald-900 dark:text-emerald-100 mb-2">Medical ID / License</label>
-        <div class="relative group">
-          <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Icon name="heroicons:identification-solid" class="text-slate-400 group-focus-within:text-emerald-500 transition-colors w-5 h-5" />
-          </div>
-          <input
-            v-model="medicalId"
-            type="text"
-            placeholder="Enter your medical ID"
-            class="w-full pl-12 pr-4 py-3 md:py-4 bg-slate-50 dark:bg-slate-800 border-0 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500 focus:bg-white dark:focus:bg-slate-800 transition-all font-medium text-sm md:text-base"
-          />
-        </div>
-      </div>
+      <!-- MEDICAL ID SUDAH DIHAPUS DARI SINI -->
 
       <!-- Tombol Login -->
       <button

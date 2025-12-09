@@ -3,12 +3,15 @@ import { useAuthStore } from "~/stores/auth";
 
 definePageMeta({ layout: "default" });
 
+// 1. Panggil Helper SweetAlert dari Plugin Nuxt
+const { $swal } = useNuxtApp();
+
 const authStore = useAuthStore();
 const activeTab = ref("profile");
 const isLoading = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 
-// State Form (avatarFile untuk menyimpan file mentah yang akan diupload)
+// State Form
 const form = reactive({
   fullName: "",
   specialization: "",
@@ -19,8 +22,8 @@ const form = reactive({
   birthDate: "",
   address: "",
   bio: "",
-  avatarUrl: "", // Untuk preview di layar
-  avatarFile: null as File | null, // Untuk dikirim ke server
+  avatarUrl: "", // Preview
+  avatarFile: null as File | null, // File Mentah
 });
 
 // Helper: Trigger klik input file
@@ -32,16 +35,19 @@ const handleFileChange = (event: Event) => {
   const file = target.files?.[0];
 
   if (file) {
-    // Validasi 5MB
+    // Validasi Ukuran 5MB dengan SweetAlert
     if (file.size > 5 * 1024 * 1024) {
-      alert("Ukuran foto terlalu besar! Maksimal 5MB.");
+      $swal.fire({
+        icon: "warning",
+        title: "File Terlalu Besar",
+        text: "Maksimal ukuran foto adalah 5MB.",
+        confirmButtonColor: "#f59e0b",
+      });
       return;
     }
 
-    // Simpan file mentah ke state (untuk dikirim nanti)
+    // Simpan file mentah & Buat Preview
     form.avatarFile = file;
-
-    // Buat preview lokal (biar user bisa lihat fotonya sebelum di-save)
     form.avatarUrl = URL.createObjectURL(file);
   }
 };
@@ -56,15 +62,13 @@ const fetchProfile = async () => {
       method: "POST",
       body: { email: currentUserEmail },
     });
+
     if (res.success && res.data) {
-      // Copy data dari DB ke Form
       Object.assign(form, res.data);
 
-      // Format tanggal
       if (res.data.birthDate) {
         form.birthDate = new Date(res.data.birthDate).toISOString().split("T")[0] ?? "";
       }
-      // Reset file mentah (karena belum ada upload baru)
       form.avatarFile = null;
     }
   } catch (error) {
@@ -76,13 +80,12 @@ onMounted(() => {
   fetchProfile();
 });
 
-// FUNGSI SAVE DENGAN FORMDATA (UPDATED)
+// FUNGSI SAVE DENGAN FORMDATA & SWEETALERT
 const saveChanges = async () => {
   isLoading.value = true;
 
-  // 1. Bungkus data ke dalam FormData (Bukan JSON lagi)
   const formData = new FormData();
-  formData.append("email", form.email); // Wajib sebagai kunci ID
+  formData.append("email", form.email);
   formData.append("fullName", form.fullName);
   formData.append("specialization", form.specialization);
   formData.append("phone", form.phone);
@@ -91,30 +94,40 @@ const saveChanges = async () => {
   formData.append("gender", form.gender);
   formData.append("birthDate", form.birthDate);
 
-  // 2. Kalau ada file foto baru, masukkan ke paket
   if (form.avatarFile) {
     formData.append("avatarFile", form.avatarFile);
   }
 
   try {
-    // 3. Kirim FormData (Browser otomatis mengatur header Multipart)
     const res = await $fetch<any>("/api/doctors/update", {
       method: "POST",
       body: formData,
     });
 
     if (res.success) {
-      alert("Profil berhasil disimpan!");
+      // Alert Sukses Cantik
+      $swal.fire({
+        icon: "success",
+        title: "Berhasil Disimpan!",
+        text: "Profil dokter telah diperbarui.",
+        timer: 2000,
+        showConfirmButton: false,
+      });
 
-      // Paksa refresh data user di store biar foto di header/sidebar berubah
+      // Refresh data di Store (Header/Sidebar) & Form
       await authStore.fetchUserProfile();
-
-      // Refresh form lokal
       fetchProfile();
     }
   } catch (error: any) {
     console.error("Gagal update:", error);
-    alert(error.statusMessage || "Gagal menyimpan profil.");
+
+    // Alert Error Cantik
+    $swal.fire({
+      icon: "error",
+      title: "Gagal Menyimpan",
+      text: error.statusMessage || "Terjadi kesalahan saat update profil.",
+      confirmButtonColor: "#ef4444",
+    });
   } finally {
     isLoading.value = false;
   }

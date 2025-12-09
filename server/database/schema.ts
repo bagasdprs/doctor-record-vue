@@ -32,15 +32,21 @@ export const patients = pgTable("patients", {
   name: text("name").notNull(),
   nik: text("nik").unique(),
   bpjsNumber: text("bpjs_number"),
-
-  // TAMBAHKAN INI:
   phone: text("phone"),
 
   avatarUrl: text("avatar_url"),
   gender: text("gender"),
   birthDate: timestamp("birth_date"),
   address: text("address"),
+
+  bloodType: text("blood_type"),
+  allergies: text("allergies"),
+  chronicConditions: text("chronic_conditions"),
+  height: integer("height"),
+  weight: integer("weight"),
+
   doctorId: uuid("doctor_id").references(() => doctors.id),
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

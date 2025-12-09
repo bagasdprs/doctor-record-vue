@@ -1,18 +1,23 @@
 <script setup lang="ts">
 import { useAuthStore } from "~/stores/auth";
+import { useDark } from "@vueuse/core";
+
+useDark({
+  initialValue: "light",
+  storageKey: "medisecure-theme",
+});
 
 const authStore = useAuthStore();
-
-// Saat aplikasi dimuat, cek apakah ada sesi tertinggal?
-// Kalau ada, langsung tarik data lengkapnya (termasuk foto) dari DB
 await callOnce(async () => {
-  await authStore.fetchUserProfile();
+  if (authStore.isLoggedIn) {
+    await authStore.fetchUserProfile();
+  }
 });
 </script>
 
 <template>
   <div>
-    <NuxtLoadingIndicator />
+    <NuxtLoadingIndicator color="#10b981" />
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>

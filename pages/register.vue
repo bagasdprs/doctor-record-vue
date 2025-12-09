@@ -127,6 +127,9 @@ const handleRegister = async () => {
               <option>Sp. Penyakit Dalam</option>
               <option>Sp. Anak</option>
               <option>Sp. Bedah</option>
+              <option>Sp. Tulang</option>
+              <option>Sp. Kulit</option>
+              <option>Sp. Kanker</option>
               <option>Sp. Jantung</option>
             </select>
           </div>
