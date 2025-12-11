@@ -19,6 +19,13 @@ export default defineEventHandler(async (event) => {
       avatarUrl: body.avatarUrl || null,
       gender: body.gender,
       address: body.address || null,
+
+      bloodType: body.bloodType || null,
+      allergies: body.allergies || null,
+      chronicConditions: body.chronicConditions || null,
+      height: body.height ? parseInt(body.height) : null,
+      weight: body.weight ? parseInt(body.weight) : null,
+
       birthDate: body.birthDate ? new Date(body.birthDate) : null,
       updatedAt: new Date(), // Update timestamp
     };

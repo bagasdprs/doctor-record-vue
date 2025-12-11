@@ -48,12 +48,6 @@ onMounted(() => {
 // --- REAL-TIME DATA LOGIC ---
 const isDashboardLoading = ref(true);
 
-// Definisikan tipe array stats biar TS gak bingung
-// const stats = ref<{ title: string; value: string; icon: string; bg: string }[]>([
-//   { title: "Total Patients", value: "0", icon: "heroicons:users", bg: "bg-blue-50 dark:bg-blue-900/20" },
-//   { title: "Consultations Today", value: "0", icon: "heroicons:chat-bubble-left-right", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
-//   { title: "Pending AI Summaries", value: "0", icon: "heroicons:cpu-chip", bg: "bg-purple-50 dark:bg-purple-900/20" },
-// ]);
 const stats = ref([
   {
     title: "Total Patients",
@@ -250,7 +244,12 @@ const formatTime = (dateString: string) => {
         </div>
 
         <div class="grid grid-cols-2 gap-3">
-          <button class="px-4 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-300 font-medium text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition">View</button>
+          <NuxtLink
+            :to="{ path: `/patients/${apt.patientId}`, query: { source: 'dashboard' } }"
+            class="flex justify-center items-center px-4 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-300 font-medium text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+            >View Patient</NuxtLink
+          >
+          <!-- <button class="px-4 py-2 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-600 dark:text-slate-300 font-medium text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition">View Patient</button> -->
 
           <NuxtLink :to="`/consultation/live-record?sessionId=${apt.id}`" class="flex justify-center items-center px-4 py-2 bg-teal-600 text-white rounded-lg font-medium text-sm hover:bg-teal-700 shadow-sm transition"> Continue </NuxtLink>
         </div>

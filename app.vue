@@ -13,6 +13,14 @@ await callOnce(async () => {
     await authStore.fetchUserProfile();
   }
 });
+
+useHead({
+  title: "FluxMed - AI Medical Scribe",
+  meta: [{ name: "description", content: "FluxMed – The AI-Powered Medical Scribe for Modern Clinics. Streamline patient documentation, automate SOAP notes, and focus on care, not paperwork." }],
+  htmlAttrs: {
+    lang: "en",
+  },
+});
 </script>
 
 <template>

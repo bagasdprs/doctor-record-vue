@@ -4,19 +4,23 @@ import { eq, gte, sql, desc } from "drizzle-orm";
 
 export default defineEventHandler(async (_event) => {
   try {
+    // 1. Hitung Total Pasien
     const patientCountResult = await db.select({ count: sql<number>`count(*)` }).from(patients);
     const totalPatients = Number(patientCountResult[0].count);
 
+    // 2. Tentukan Rentang Waktu "HARI INI"
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // 3. Ambil Konsultasi Hari Ini
     const todaysAppointments = await db
       .select({
-        id: consultations.id,
+        id: consultations.id, // ID Sesi
         time: consultations.createdAt,
         status: consultations.status,
         patientName: patients.name,
-        patientId: patients.nik,
+        patientId: patients.id, // PENTING: Ambil UUID Pasien buat link Profile
+        displayId: patients.nik, // Ambil NIK buat tampilan teks
         avatarUrl: patients.avatarUrl,
       })
       .from(consultations)
@@ -25,7 +29,6 @@ export default defineEventHandler(async (_event) => {
       .orderBy(desc(consultations.createdAt));
 
     const consultationsToday = todaysAppointments.length;
-
     const pendingSummary = todaysAppointments.filter((c) => c.status === "draft").length;
 
     return {
@@ -35,7 +38,11 @@ export default defineEventHandler(async (_event) => {
         consultationsToday,
         pendingSummary,
       },
-      appointments: todaysAppointments,
+      appointments: todaysAppointments.map((app) => ({
+        ...app,
+        // Fallback display ID kalau NIK kosong
+        patientIdDisplay: app.displayId || "No ID",
+      })),
     };
   } catch (error) {
     console.error("Dashboard API Error:", error);
