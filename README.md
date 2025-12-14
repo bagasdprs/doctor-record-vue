@@ -29,7 +29,7 @@ Built with high-performance modern frontend technologies:
 - [x] **Doctor Authentication:** Secure Login & Register with professional validation (STR Number & Specialization).
 - [x] **Interactive Dashboard:** Real-time daily patient summary and queue status.
 - [x] **Patient Management:** Comprehensive patient list and medical history details.
-- [ ] **Voice Recorder:** Integrated browser-based audio recording for consultations.
+- [x] **Voice Recorder:** Integrated browser-based audio recording for consultations.
 - [ ] **AI SOAP Generator:** Automated voice-to-text conversion into structured SOAP notes.
 - [ ] **Medical Export:** Print diagnosis results or prescriptions as PDF.
 
