@@ -6,7 +6,8 @@ export const useAuthStore = defineStore("auth", () => {
     storageKey: "medisecure-theme",
   });
 
-  const userSession = useCookie<{ id?: any; email?: string; name?: string }>("user_session", {
+  // Tambahkan 'role' ke dalam tipe data cookie
+  const userSession = useCookie<{ id?: any; email?: string; name?: string; role?: string }>("user_session", {
     maxAge: 60 * 60 * 24 * 7,
     sameSite: "lax",
   });
@@ -21,6 +22,7 @@ export const useAuthStore = defineStore("auth", () => {
       ...raw,
       avatar: userProfile.value?.avatarUrl || userProfile.value?.avatar || raw.avatar,
       name: userProfile.value?.fullName || raw.name || "Doctor",
+      role: userProfile.value?.role || raw.role, // Pastikan role terbaca
     };
   });
 
@@ -31,9 +33,16 @@ export const useAuthStore = defineStore("auth", () => {
       id: userData.id,
       email: userData.email,
       name: userData.fullName || userData.name,
+      role: userData.role, // Simpan role saat login
     };
     userSession.value = { ...sessionData };
     userProfile.value = userData;
+  };
+
+  const logout = () => {
+    userSession.value = {}; // Hapus cookie
+    userProfile.value = null;
+    navigateTo("/login");
   };
 
   const fetchUserProfile = async () => {
@@ -49,20 +58,25 @@ export const useAuthStore = defineStore("auth", () => {
 
       if (res.success && res.data) {
         userProfile.value = res.data;
-        if (res.data.fullName) {
+        // Update cookie jika ada perubahan nama/role
+        if (res.data.fullName || res.data.role) {
           const currentCookie = userSession.value || {};
-          userSession.value = { ...currentCookie, name: res.data.fullName || currentCookie.name };
+          userSession.value = {
+            ...currentCookie,
+            name: res.data.fullName || currentCookie.name,
+            role: res.data.role || currentCookie.role,
+          };
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("❌ Gagal refresh profile:", err);
-    }
-  };
 
-  const logout = () => {
-    userSession.value = {};
-    userProfile.value = null;
-    navigateTo("/login");
+      // 🔥 FIX LOGIC: Auto-Logout jika User Hilang/Basi 🔥
+      if (err.statusCode === 404 || err.statusCode === 401) {
+        console.warn("⚠️ Sesi tidak valid atau user tidak ditemukan. Melakukan logout otomatis...");
+        logout();
+      }
+    }
   };
 
   return {

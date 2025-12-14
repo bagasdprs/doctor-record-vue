@@ -1,95 +1,59 @@
 import { db } from "../../utils/db";
-import { doctors } from "../../database/schema";
-import { eq, or } from "drizzle-orm";
+import { users } from "../../database/schema"; // UBAH: Pakai 'users'
+import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
 export default defineEventHandler(async (event) => {
-  console.log("\n\n--- 🚀 NEW REQUEST: /api/auth/register ---");
-
-  // 1. CEK HEADER (Apakah pengirimannya benar?)
-  const contentType = getRequestHeader(event, "content-type");
-  console.log("📨 Content-Type:", contentType);
-
-  if (!contentType?.includes("application/json")) {
-    console.log("❌ Error: Header salah. Dikirim sebagai:", contentType);
-    throw createError({
-      statusCode: 400,
-      statusMessage: `Salah Format! Server butuh JSON, tapi kamu kirim: ${contentType || "Kosong"}`,
-    });
-  }
-
-  // 2. BACA BODY
   const body = await readBody(event);
-  console.log("📦 Data Body:", body);
 
-  // 3. Validasi Body Kosong
-  if (!body) {
-    console.log("❌ Error: Body undefined/kosong");
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Body Kosong. Pastikan pilih "raw" -> "JSON" di Postman.',
-    });
+  if (!body.email || !body.password || !body.fullName || !body.clinicName) {
+    throw createError({ statusCode: 400, statusMessage: "Mohon lengkapi data klinik anda." });
   }
 
-  // Cek kelengkapan kolom
-  if (!body.email || !body.password || !body.fullName || !body.medicalId) {
-    console.log("❌ Error: Data tidak lengkap");
-    throw createError({ statusCode: 400, statusMessage: "Semua kolom wajib diisi!" });
-  }
-
-  // --- LOGIKA UTAMA ---
-
-  // Cek User Lama
-  const existingUser = await db
-    .select()
-    .from(doctors)
-    .where(or(eq(doctors.email, body.email), eq(doctors.medicalId, body.medicalId)));
-
-  if (existingUser.length > 0) {
-    console.log("❌ Error: User sudah ada");
-    throw createError({ statusCode: 409, statusMessage: "Email atau Medical ID sudah terdaftar." });
-  }
-
-  // Hash Password
-  console.log("🔐 Mengenkripsi password...");
-  const hashedPassword = await bcrypt.hash(body.password, 10);
-
-  // Simpan ke Database
   try {
-    const newDoctor = await db
-      .insert(doctors)
+    // 1. Cek apakah email sudah terdaftar di tabel 'users'
+    const existingUser = await db.select().from(users).where(eq(users.email, body.email)).limit(1);
+
+    if (existingUser.length > 0) {
+      throw createError({ statusCode: 400, statusMessage: "Email sudah terdaftar." });
+    }
+
+    // 2. Hash Password
+    const hashedPassword = await bcrypt.hash(body.password, 10);
+
+    // 3. Simpan User Baru ke Database (Tabel 'users')
+    const newUser = await db
+      .insert(users)
       .values({
-        fullName: body.fullName,
         email: body.email,
-        medicalId: body.medicalId,
         password: hashedPassword,
+        fullName: body.fullName,
+
+        // PENTING: Set role default jadi 'admin' karena ini register dari halaman publik
+        role: "admin",
+
+        clinicName: body.clinicName,
+
         specialization: body.specialization || "General Practitioner",
+        medicalId: body.medicalId,
       })
       .returning();
 
-    console.log(`✅ SUKSES! Dokter baru dibuat: ${newDoctor[0].email}`);
-
     return {
       success: true,
-      message: "Registrasi berhasil!",
-      user: {
-        email: newDoctor[0].email,
-        name: newDoctor[0].fullName,
+      message: "Registrasi Klinik Berhasil!",
+      data: {
+        id: newUser[0].id,
+        email: newUser[0].email,
+        name: newUser[0].fullName,
+        role: newUser[0].role,
       },
     };
-  } catch (error) {
-    console.error("🔥 DATABASE ERROR:", error);
-    throw createError({ statusCode: 500, statusMessage: "Gagal menyimpan ke database" });
+  } catch (error: any) {
+    console.error("Register Error:", error);
+    if (error.code === "23505") {
+      throw createError({ statusCode: 409, statusMessage: "Email sudah digunakan." });
+    }
+    throw createError({ statusCode: 500, statusMessage: "Gagal menyimpan ke database." });
   }
 });
-
-// export default defineEventHandler(async (event) => {
-//   // Kita coba baca body
-//   const body = await readBody(event);
-
-//   // Balikin lagi apa yang dikirim (Echo)
-//   return {
-//     status: "success",
-//     receivedData: body || "KOSONG BRO",
-//   };
-// });

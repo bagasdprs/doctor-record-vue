@@ -1,27 +1,32 @@
-import { pgTable, text, timestamp, uuid, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, integer, date, pgEnum } from "drizzle-orm/pg-core";
 
-// --- 1. TABEL DOKTER (doctors) ---
-export const doctors = pgTable("doctors", {
+// --- 0. ENUMS (Pilihan Tetap) ---
+export const roleEnum = pgEnum("role", ["doctor", "midwife", "pharmacist", "receptionist", "admin"]);
+export const statusEnum = pgEnum("status", ["active", "inactive", "archived"]);
+
+// --- 1. TABEL USER (Dulu 'doctors', sekarang untuk SEMUA Staff) ---
+export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
 
   // Login Info
   email: text("email").unique().notNull(),
-  medicalId: text("medical_id").unique().notNull(), // STR / License Number
-  password: text("password").notNull(), // Password terenkripsi
+  password: text("password").notNull(),
 
-  // Profil Dasar
+  // Identitas & Role
   fullName: text("full_name").notNull(),
-  specialization: text("specialization").default("General Practitioner"),
+  role: roleEnum("role").default("doctor"),
 
-  // Data Profil Tambahan (Settings)
+  // Data Medic
+  medicalId: text("medical_id").unique(),
+  specialization: text("specialization"),
+
+  clinicName: text("clinic_name"),
+
+  // Profil Tambahan
   avatarUrl: text("avatar_url"),
-  bio: text("bio"),
   phone: text("phone"),
   address: text("address"),
-  gender: text("gender"), // Male/Female
-  birthDate: timestamp("birth_date"), // Tanggal Lahir
 
-  // Timestamp Wajib
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -29,51 +34,125 @@ export const doctors = pgTable("doctors", {
 // --- 2. TABEL PASIEN (patients) ---
 export const patients = pgTable("patients", {
   id: uuid("id").defaultRandom().primaryKey(),
+
+  // Info Dasar
   name: text("name").notNull(),
   nik: text("nik").unique(),
   bpjsNumber: text("bpjs_number"),
   phone: text("phone"),
-
-  avatarUrl: text("avatar_url"),
-  gender: text("gender"),
-  birthDate: timestamp("birth_date"),
   address: text("address"),
 
+  // Demografi
+  gender: text("gender"),
+  birthDate: date("birth_date"),
+  avatarUrl: text("avatar_url"),
+
+  // Data Medis Dasar (Quick View)
   bloodType: text("blood_type"),
   allergies: text("allergies"),
   chronicConditions: text("chronic_conditions"),
   height: integer("height"),
   weight: integer("weight"),
 
-  doctorId: uuid("doctor_id").references(() => doctors.id),
+  // Relasi: Siapa dokter PJ-nya? (Opsional)
+  primaryCareId: uuid("primary_care_id").references(() => users.id),
 
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// --- 3. TABEL KONSULTASI (consultations) ---
+// --- 3. TABEL KONSULTASI (consultations) - Wilayah Dokter ---
 export const consultations = pgTable("consultations", {
   id: uuid("id").defaultRandom().primaryKey(),
 
-  // Data Rekaman Audio
-  audioUrl: text("audio_url"), // Link file di cloud
-  duration: integer("duration"), // Durasi dalam detik
-  transcript: text("transcript"), // Hasil Text-to-Speech (Whisper)
+  // Relasi
+  patientId: uuid("patient_id")
+    .references(() => patients.id)
+    .notNull(),
+  doctorId: uuid("doctor_id").references(() => users.id),
 
-  // Hasil Analisa AI (SOAP)
+  // Data AI Voice
+  transcript: text("transcript"),
+  duration: integer("duration"),
+
+  // SOAP Data
   subjective: text("subjective"),
   objective: text("objective"),
   assessment: text("assessment"),
   plan: text("plan"),
-  summary: text("summary"), // Ringkasan singkat
 
-  // Status Proses AI: 'draft', 'processing', 'done'
+  summary: text("summary"),
   status: text("status").default("draft"),
 
-  // Relasi: Konsultasi ini milik Pasien siapa & Dokter siapa?
-  patientId: uuid("patient_id").references(() => patients.id),
-  doctorId: uuid("doctor_id").references(() => doctors.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// --- 4. TABEL KEHAMILAN (pregnancy_records) - Wilayah Bidan 🤰 ---
+export const pregnancyRecords = pgTable("pregnancy_records", {
+  id: uuid("id").defaultRandom().primaryKey(),
+
+  patientId: uuid("patient_id")
+    .references(() => patients.id)
+    .notNull(),
+  midwifeId: uuid("midwife_id").references(() => users.id),
+
+  // Data Kehamilan
+  hpht: date("hpht"),
+  hpl: date("hpl"),
+  gestationalAge: integer("gestational_age"),
+
+  // Pemeriksaan Fisik Ibu
+  weight: integer("weight"),
+  bloodPressure: text("blood_pressure"),
+  fetalHeartRate: integer("fetal_heart_rate"),
+
+  notes: text("notes"),
+  riskStatus: text("risk_status").default("Low"),
 
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+// --- 5. TABEL OBAT (inventory) - Wilayah Apoteker 💊 ---
+export const inventory = pgTable("inventory", {
+  id: uuid("id").defaultRandom().primaryKey(),
+
+  name: text("name").notNull(),
+  category: text("category"),
+  sku: text("sku").unique(),
+
+  stock: integer("stock").default(0),
+  minStock: integer("min_stock").default(10),
+
+  unit: text("unit"),
+  price: integer("price"),
+
+  expiryDate: date("expiry_date"),
+  batchNumber: text("batch_number"),
+
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// --- 6. TABEL RESEP (prescriptions) - Jembatan Dokter & Apoteker ---
+export const prescriptions = pgTable("prescriptions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+
+  consultationId: uuid("consultation_id").references(() => consultations.id),
+  patientId: uuid("patient_id").references(() => patients.id),
+  prescribedBy: uuid("prescribed_by").references(() => users.id),
+
+  status: text("status").default("pending"),
+  notes: text("notes"),
+
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// --- 7. ITEM RESEP (prescription_items) ---
+export const prescriptionItems = pgTable("prescription_items", {
+  id: uuid("id").defaultRandom().primaryKey(),
+
+  prescriptionId: uuid("prescription_id").references(() => prescriptions.id),
+  inventoryId: uuid("inventory_id").references(() => inventory.id),
+
+  quantity: integer("quantity").notNull(),
+  dosage: text("dosage"), // "3x1 sesudah makan"
 });

@@ -1,5 +1,5 @@
 import { db } from "../../utils/db";
-import { doctors } from "../../database/schema";
+import { users } from "../../database/schema"; // GANTI 'doctors' JADI 'users'
 import { eq } from "drizzle-orm";
 import fs from "node:fs";
 import path from "node:path";
@@ -23,19 +23,14 @@ export default defineEventHandler(async (event) => {
   if (!email) throw createError({ statusCode: 400, statusMessage: "Email wajib ada" });
 
   // 2. Siapkan Object Update
+  // Pastikan kolom-kolom ini ada di tabel 'users' schema.ts
   const updateData: any = {
     fullName: getValue("fullName"),
     specialization: getValue("specialization"),
     phone: getValue("phone"),
-    bio: getValue("bio"),
     address: getValue("address"),
-    gender: getValue("gender"),
     updatedAt: new Date(),
   };
-
-  // Handle Tanggal Lahir
-  const birthDateStr = getValue("birthDate");
-  if (birthDateStr) updateData.birthDate = new Date(birthDateStr);
 
   // 3. LOGIKA UPLOAD FOTO (Simpan ke Folder)
   const avatarFile = files.find((f) => f.name === "avatarFile");
@@ -62,8 +57,8 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // 4. Update Database
-    const updatedUser = await db.update(doctors).set(updateData).where(eq(doctors.email, email)).returning();
+    // 4. Update Database (Tabel users)
+    const updatedUser = await db.update(users).set(updateData).where(eq(users.email, email)).returning();
 
     return {
       success: true,

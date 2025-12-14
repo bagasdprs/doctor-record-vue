@@ -4,29 +4,29 @@ import { consultations } from "../../database/schema";
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
 
-  // Kita butuh ID Pasien untuk membuat sesi
   if (!body.patientId) {
     throw createError({ statusCode: 400, statusMessage: "Patient ID wajib dikirim." });
   }
 
   try {
-    // Buat data konsultasi baru (Status: draft)
-    // Waktunya otomatis NOW() / Hari ini
     const newSession = await db
       .insert(consultations)
       .values({
         patientId: body.patientId,
-        // Nanti doctorId bisa diambil dari session login (sementara hardcode/null gpp)
-        // doctorId: user.id
-        status: "draft", // Status awal
-        transcript: "",
-        summary: "",
+        transcript: body.transcript || "",
+        subjective: body.subjective || "",
+        objective: body.objective || "",
+        assessment: body.assessment || "",
+        plan: body.plan || "",
+        summary: body.summary || `${body.assessment} - ${body.plan}`,
+        status: "Ready",
+        duration: body.duration || 0,
       })
       .returning();
 
     return {
       success: true,
-      message: "Sesi konsultasi dibuat!",
+      message: "Consultation Success Saved!",
       data: newSession[0],
     };
   } catch (error) {

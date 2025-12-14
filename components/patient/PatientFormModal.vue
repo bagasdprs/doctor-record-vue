@@ -3,10 +3,10 @@ const { $swal } = useNuxtApp();
 
 // PROPS: Data yang diterima dari luar (Induk)
 const props = defineProps({
-  isOpen: Boolean, // Apakah modal harus tampil?
-  isEditing: Boolean, // Apakah mode Edit?
-  editingId: String, // ID Pasien yang diedit (kalau ada)
-  initialData: Object, // Data awal pasien (kalau mode Edit)
+  isOpen: Boolean,
+  isEditing: Boolean,
+  editingId: String,
+  initialData: Object,
 });
 
 // EMITS: Cara lapor balik ke Induk
@@ -17,7 +17,6 @@ const isLoading = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 
 // State Form Utama
-// Kita buat reactive object yang menampung semua field (termasuk medis)
 const form = reactive({
   name: "",
   nik: "",
@@ -34,26 +33,40 @@ const form = reactive({
   allergies: "",
   chronicConditions: "",
 
-  avatarUrl: "", // Preview
-  avatarFile: null as File | null, // File mentah
+  avatarUrl: "",
+  avatarFile: null as File | null,
 });
 
 // WATCHER: Pantau perubahan props 'isOpen'
-// Kalau modal dibuka, kita reset atau isi form sesuai mode
 watch(
   () => props.isOpen,
   (newVal) => {
     if (newVal) {
       if (props.isEditing && props.initialData) {
-        // MODE EDIT: Isi form dengan data lama
         populateForm(props.initialData);
       } else {
-        // MODE ADD: Kosongkan form
         resetForm();
       }
     }
   }
 );
+
+// --- LOGIC BARU: FILTER INPUT NIK ---
+const handleNikInput = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+
+  // 1. Hapus semua karakter yang BUKAN angka
+  let value = target.value.replace(/\D/g, "");
+
+  // 2. Potong jika lebih dari 16 digit
+  if (value.length > 16) {
+    value = value.slice(0, 16);
+  }
+
+  // 3. Update nilai form dan tampilan input
+  form.nik = value;
+  target.value = value;
+};
 
 // Fungsi Reset Form (Bersih-bersih)
 const resetForm = () => {
@@ -103,11 +116,20 @@ const handleSubmit = async () => {
     return;
   }
 
+  // --- LOGIC BARU: VALIDASI NIK 16 DIGIT ---
+  if (form.nik && form.nik.length !== 16) {
+    $swal.fire({
+      icon: "warning",
+      title: "NIK Tidak Valid",
+      text: `NIK harus tepat 16 digit angka. Saat ini: ${form.nik.length} digit.`,
+    });
+    return;
+  }
+
   isLoading.value = true;
 
   // Tentukan URL & ID
   const url = props.isEditing ? "/api/patients/update" : "/api/patients/create";
-  // Kalau edit, kirim ID. Kalau create, jangan.
   const payload = props.isEditing ? { ...form, id: props.editingId } : { ...form };
 
   try {
@@ -123,8 +145,8 @@ const handleSubmit = async () => {
       position: "top-end",
     });
 
-    emit("refresh"); // Suruh induk refresh data
-    emit("close"); // Tutup modal
+    emit("refresh");
+    emit("close");
   } catch (error: any) {
     $swal.fire("Gagal", error.statusMessage || "Gagal menyimpan data.", "error");
   } finally {
@@ -145,8 +167,6 @@ const handleFileChange = (event: Event) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       if (e.target?.result) form.avatarUrl = e.target.result as string;
-      // Note: Di sini kita pakai Base64 dulu biar cepet (sama kayak profile).
-      // Kalau mau pakai upload file, logikanya mirip profile settings.
     };
     reader.readAsDataURL(file);
   }
@@ -185,13 +205,10 @@ const handleFileChange = (event: Event) => {
               >
                 <img v-if="form.avatarUrl" :src="form.avatarUrl" class="w-full h-full object-cover" />
                 <Icon v-else name="heroicons:camera" class="w-8 h-8 text-slate-400 group-hover:text-blue-500 transition" />
-
-                <!-- Hover Overlay -->
                 <div class="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
                   <span class="text-white text-xs font-bold">Change</span>
                 </div>
               </div>
-
               <input type="file" ref="fileInput" accept="image/*" class="hidden" @change="handleFileChange" />
             </div>
 
@@ -208,8 +225,16 @@ const handleFileChange = (event: Event) => {
               </div>
               <div class="grid grid-cols-2 gap-4">
                 <div>
-                  <label class="block text-xs font-bold text-slate-500 uppercase mb-1">NIK (ID)</label>
-                  <input v-model="form.nik" placeholder="16 digits" class="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none dark:text-white" />
+                  <label class="block text-xs font-bold text-slate-500 uppercase mb-1">NIK (ID) *</label>
+                  <!-- LOGIC INPUT KHUSUS NIK -->
+                  <input
+                    :value="form.nik"
+                    @input="handleNikInput"
+                    placeholder="16 digits numeric"
+                    maxlength="16"
+                    class="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg outline-none dark:text-white font-mono"
+                  />
+                  <p class="text-[10px] text-slate-400 mt-1 text-right">{{ form.nik.length }}/16</p>
                 </div>
                 <div>
                   <label class="block text-xs font-bold text-slate-500 uppercase mb-1">BPJS No</label>
@@ -238,7 +263,7 @@ const handleFileChange = (event: Event) => {
             </div>
           </div>
 
-          <!-- SECTION 3: MEDICAL PROFILE (Hanya relevan saat Edit, tapi boleh diisi di awal) -->
+          <!-- SECTION 3: MEDICAL PROFILE -->
           <div class="bg-blue-50 dark:bg-slate-900/50 p-4 rounded-xl border border-blue-100 dark:border-slate-700">
             <h4 class="text-sm font-bold text-blue-800 dark:text-blue-300 mb-3 flex items-center gap-2"><Icon name="heroicons:heart" class="w-4 h-4" /> Medical Profile (Optional)</h4>
 

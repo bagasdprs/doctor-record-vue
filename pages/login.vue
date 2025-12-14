@@ -10,7 +10,6 @@ const { $swal } = useNuxtApp();
 
 const email = ref("");
 const password = ref("");
-// const medicalId = ref(""); // <--- SUDAHDIHAPUS
 const isLoading = ref(false);
 
 const handleLogin = async () => {
@@ -19,8 +18,8 @@ const handleLogin = async () => {
       icon: "warning",
       title: "Data belum lengkap!",
       text: "Silakan isi email dan password Anda.",
-      confirmButtonText: "OK", // Perbaikan: Text tombol
-      confirmButtonColor: "#10b981", // Perbaikan: Warna tombol
+      confirmButtonText: "OK",
+      confirmButtonColor: "#10b981",
     });
     return;
   }
@@ -41,20 +40,42 @@ const handleLogin = async () => {
     // Alert Sukses
     $swal.fire({
       icon: "success",
-      title: "Login Berhasil",
-      text: `Selamat datang, ${response.user.name}`,
+      title: "Login Successful",
+      text: `Welcome, ${response.user.name}`,
       timer: 1500,
       showConfirmButton: false,
       toast: true,
       position: "top-end",
     });
 
-    setTimeout(() => navigateTo("/dashboard"), 1500);
+    // --- 👮‍♂️ LOGIC SATPAM PINTAR (REDIRECT) ---
+    const role = response.user.role;
+    let targetPath = "/dashboard"; // Default ke Dokter
+
+    switch (role) {
+      case "midwife":
+        targetPath = "/midwife/dashboard";
+        break;
+      case "pharmacist":
+        targetPath = "/pharmacy/dashboard";
+        break;
+      case "receptionist":
+        targetPath = "/receptionist/dashboard";
+        break;
+      case "admin":
+        targetPath = "/admin/dashboard";
+        break;
+      default:
+        targetPath = "/dashboard"; // Dokter masuk sini
+        break;
+    }
+
+    setTimeout(() => navigateTo(targetPath), 1500);
   } catch (error: any) {
     // Alert Error
     $swal.fire({
       icon: "error",
-      title: "Login Gagal",
+      title: "Failed to Login",
       text: error.statusMessage || "Email atau password salah.",
       confirmButtonText: "Coba Lagi",
       confirmButtonColor: "#ef4444",

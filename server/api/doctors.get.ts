@@ -1,20 +1,22 @@
 import { db } from "../utils/db";
-import { doctors } from "../database/schema";
-import { desc } from "drizzle-orm";
+import { users } from "../database/schema"; // GANTI 'doctors' JADI 'users'
+import { desc, eq } from "drizzle-orm";
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (_event) => {
   try {
+    // Ambil data user yang role-nya 'doctor' saja
     const allDoctors = await db
       .select({
-        id: doctors.id,
-        fullName: doctors.fullName,
-        email: doctors.email,
-        medicalId: doctors.medicalId,
-        specialization: doctors.specialization,
-        createdAt: doctors.createdAt,
+        id: users.id,
+        fullName: users.fullName,
+        email: users.email,
+        medicalId: users.medicalId,
+        specialization: users.specialization,
+        createdAt: users.createdAt,
       })
-      .from(doctors)
-      .orderBy(desc(doctors.createdAt));
+      .from(users)
+      .where(eq(users.role, "doctor")) // Filter: Cuma dokter
+      .orderBy(desc(users.createdAt));
 
     return {
       success: true,
@@ -22,6 +24,7 @@ export default defineEventHandler(async (event) => {
       data: allDoctors,
     };
   } catch (error) {
+    console.error("Get Doctors Error:", error);
     return {
       success: false,
       message: "Gagal mengambil data dokter",
