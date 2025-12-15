@@ -1,6 +1,10 @@
-# 🩺 Doctor Record Apps
+# 🩺 Doctor Record Apps - FluxMed
 
-**Doctor Record Apps** is a modern web application designed to streamline the documentation process for medical professionals.
+**Current Status:** 🚧 Active Development (Public Beta)
+**Focus:** Fullstack Engineering & AI Integration
+
+**_About This Project_**
+**FluxMed** is a modern web application designed to streamline the documentation process for medical professionals.
 
 The core focus of this application is the **AI Medical Scribe** feature. Doctors can simply record their consultation sessions, and the system uses advanced AI to automatically transcribe (Speech-to-Text) and summarize the conversation into standard **SOAP (Subjective, Objective, Assessment, Plan)** notes.
 
@@ -45,9 +49,9 @@ Built with high-performance modern frontend technologies:
   - Dark Mode / Light Mode Toggle. (BARU)
   - Collapsible Sidebar dengan Animasi. (BARU)
   - Real-time User Data Binding (Pinia Store).
-- [x] **Konsultasi UI:** (BARU - Sebelumnya Voice Recorder masih kosong)
+- [x] **Konsultasi UI:**
   - List Riwayat Pasien.
-  - Live Recording Interface (Timer & Waveform Visualizer).
+  - Live Recording Interface
 - [ ] **Voice Recorder & AI:** Integrasi Whisper & Gemini (Masih Pending).
 - [ ] **Medical Export:** Print diagnosis results (Masih Pending).
 
@@ -118,6 +122,6 @@ npm run dev
 
 This project utilizes Tailwind CSS v4 with the Vite Plugin configuration in Nuxt. Please ensure you do not modify the assets folder structure or nuxt.config.ts arbitrarily, as it may break the styling system.
 
-Made with ❤️ and a lot of coffee by Bagas Dwiprasandi.
+Made with ❤️ and a lot of coffee by Bagas Dwiprasandi
 
 ---

@@ -9,7 +9,7 @@ const toggleDark = useToggle(isDark);
 const authStore = useAuthStore();
 const route = useRoute();
 
-// Ambil data user dari Pinia biar kita tau role-nya siapa
+// Ambil data user dari Pinia
 const { user } = storeToRefs(authStore);
 
 // State Layout
@@ -25,53 +25,6 @@ watch(
   }
 );
 
-// --- 🧠 LOGIKA OTAK SIDEBAR (MENU FACTORY) ---
-const menuItems = computed(() => {
-  const role = user.value?.role || "doctor"; // Default ke dokter kalau null
-
-  // 1. MENU UMUM (Semua dapet ini)
-  const commonMenus = [{ name: "Settings", path: "/settings", icon: "heroicons:cog-6-tooth" }];
-
-  // 2. MENU SPESIFIK PER ROLE
-  switch (role) {
-    case "midwife": // 🤰 BIDAN
-      return [
-        { name: "Dashboard", path: "/midwife/dashboard", icon: "heroicons:home" },
-        { name: "Patients", path: "/patients", icon: "heroicons:users" }, // Bidan juga butuh liat pasien
-        { name: "KIA & ANC", path: "/midwife/kia", icon: "heroicons:heart" },
-        { name: "Immunization", path: "/midwife/immunization", icon: "heroicons:shield-check" },
-        ...commonMenus,
-      ];
-
-    case "pharmacist": // 💊 APOTEKER
-      return [
-        { name: "Dashboard", path: "/pharmacy/dashboard", icon: "heroicons:squares-2x2" },
-        { name: "Inventory", path: "/pharmacy/inventory", icon: "heroicons:cube" },
-        { name: "Prescriptions", path: "/pharmacy/prescriptions", icon: "heroicons:clipboard-document-list" },
-        ...commonMenus,
-      ];
-
-    case "receptionist": // 💁‍♀️ RESEPSIONIS
-      return [
-        { name: "Dashboard", path: "/receptionist/dashboard", icon: "heroicons:home" },
-        { name: "Registration", path: "/patients", icon: "heroicons:user-plus" },
-        { name: "Queue", path: "/receptionist/queue", icon: "heroicons:clock" },
-        ...commonMenus,
-      ];
-
-    case "admin": // 🛠️ ADMIN
-      return [{ name: "Dashboard", path: "/admin/dashboard", icon: "heroicons:chart-bar" }, { name: "User Management", path: "/admin/users", icon: "heroicons:user-group" }, ...commonMenus];
-
-    default: // 👨‍⚕️ DOKTER (Default)
-      return [
-        { name: "Dashboard", path: "/dashboard", icon: "heroicons:squares-2x2" },
-        { name: "Patients", path: "/patients", icon: "heroicons:users" },
-        { name: "Consultations", path: "/consultation", icon: "heroicons:folder-open" },
-        ...commonMenus,
-      ];
-  }
-});
-
 // --- 🎨 LOGIKA WARNA-WARNI (THEME) ---
 const themeColor = computed(() => {
   const role = user.value?.role || "doctor";
@@ -84,6 +37,44 @@ const themeColor = computed(() => {
       return "text-orange-600 bg-orange-50 dark:bg-orange-900/20 dark:text-orange-400";
     default:
       return "text-blue-700 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400"; // Dokter Biru
+  }
+});
+
+// --- 🧠 LOGIKA WARNA BACKGROUND SIDEBAR ---
+// Ini yang bikin sidebar berubah warna sesuai role
+const sidebarTheme = computed(() => {
+  const role = user.value?.role || "doctor";
+
+  switch (role) {
+    case "midwife": // 🤰 BIDAN (Nuansa Ungu)
+      return "bg-purple-50/80 border-purple-200 text-purple-900 dark:bg-[#150a1f] dark:border-purple-900/30 dark:text-purple-100";
+
+    case "pharmacist": // 💊 APOTEKER (Nuansa Hijau Emerald)
+      return "bg-emerald-50/80 border-emerald-200 text-emerald-900 dark:bg-[#062c19] dark:border-emerald-900/30 dark:text-emerald-100";
+
+    case "receptionist": // 💁‍♀️ RESEPSIONIS (Nuansa Oranye)
+      return "bg-orange-50/80 border-orange-200 text-orange-900 dark:bg-[#2e1a0b] dark:border-orange-900/30 dark:text-orange-100";
+
+    case "admin": // 🛠️ ADMIN (Nuansa Abu Gelap)
+      return "bg-slate-100 border-slate-300 text-slate-900 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100";
+
+    default: // 👨‍⚕️ DOKTER (Nuansa Biru)
+      return "bg-blue-50/80 border-blue-200 text-blue-900 dark:bg-[#0b172e] dark:border-blue-900/30 dark:text-blue-100";
+  }
+});
+
+// --- LOGIKA WARNA ITEM MENU AKTIF ---
+const activeMenuTheme = computed(() => {
+  const role = user.value?.role || "doctor";
+  switch (role) {
+    case "midwife":
+      return "bg-purple-200 text-purple-700 dark:bg-purple-800 dark:text-white shadow-purple-500/10";
+    case "pharmacist":
+      return "bg-emerald-200 text-emerald-700 dark:bg-emerald-800 dark:text-white shadow-emerald-500/10";
+    case "receptionist":
+      return "bg-orange-200 text-orange-700 dark:bg-orange-800 dark:text-white shadow-orange-500/10";
+    default:
+      return "bg-blue-200 text-blue-700 dark:bg-blue-800 dark:text-white shadow-blue-500/10";
   }
 });
 
@@ -101,6 +92,37 @@ const logoColor = computed(() => {
   }
 });
 
+// --- MENU FACTORY ---
+const menuItems = computed(() => {
+  const role = user.value?.role || "doctor";
+  const commonMenus = [{ name: "Settings", path: "/settings", icon: "heroicons:cog-6-tooth" }];
+
+  switch (role) {
+    case "midwife":
+      return [
+        { name: "Dashboard", path: "/midwife/dashboard", icon: "heroicons:home" },
+        { name: "Pasien", path: "/midwife/patient-midwife", icon: "heroicons:users" },
+        { name: "KIA (Maternal)", path: "/midwife/kia", icon: "heroicons:heart" },
+        { name: "Imunisasi", path: "/midwife/immunization", icon: "heroicons:shield-check" },
+        ...commonMenus,
+      ];
+    case "pharmacist":
+      return [
+        { name: "Dashboard", path: "/pharmacy/dashboard", icon: "heroicons:squares-2x2" },
+        { name: "Stok Obat", path: "/pharmacy/inventory", icon: "heroicons:cube" },
+        { name: "Resep", path: "/pharmacy/prescriptions", icon: "heroicons:clipboard-document-list" },
+        ...commonMenus,
+      ];
+    default: // Dokter
+      return [
+        { name: "Dashboard", path: "/dashboard", icon: "heroicons:squares-2x2" },
+        { name: "Pasien", path: "/patients", icon: "heroicons:users" },
+        { name: "Konsultasi", path: "/consultation", icon: "heroicons:folder-open" },
+        ...commonMenus,
+      ];
+  }
+});
+
 const logout = () => authStore.logout();
 const toggleSidebar = () => (isCollapsed.value = !isCollapsed.value);
 const toggleMobileMenu = () => (isMobileOpen.value = !isMobileOpen.value);
@@ -114,8 +136,13 @@ const toggleMobileMenu = () => (isMobileOpen.value = !isMobileOpen.value);
 
   <!-- SIDEBAR CONTAINER -->
   <aside
-    class="bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 flex flex-col h-full transition-all duration-300 ease-in-out z-40"
-    :class="[isMobile ? 'w-64' : isCollapsed ? 'w-20' : 'w-64', isMobile ? 'fixed inset-y-0 left-0 shadow-2xl' : 'static', isMobile ? (isMobileOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0']"
+    class="border-r flex flex-col h-full transition-all duration-300 ease-in-out z-40 backdrop-blur-xl"
+    :class="[
+      sidebarTheme, // <--- INI KUNCINYA! Class dinamis masuk sini
+      isMobile ? 'w-64' : isCollapsed ? 'w-20' : 'w-64',
+      isMobile ? 'fixed inset-y-0 left-0 shadow-2xl' : 'static',
+      isMobile ? (isMobileOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0',
+    ]"
   >
     <!-- HEADER -->
     <div class="flex transition-all duration-300" :class="isCollapsed && !isMobile ? 'flex-col justify-center gap-4 py-6' : 'flex-row items-center justify-between p-6'" :style="{ height: '80px' }">
@@ -124,16 +151,16 @@ const toggleMobileMenu = () => (isMobileOpen.value = !isMobileOpen.value);
         <div class="text-white p-1.5 rounded-lg shrink-0 transition-all shadow-md" :class="logoColor">
           <Icon name="heroicons:shield-check-solid" class="w-7 h-7" />
         </div>
-        <span v-show="!isCollapsed || isMobile" class="text-xl font-extrabold text-slate-800 dark:text-white tracking-tight transition-opacity duration-300"> FluxMed </span>
+        <span v-show="!isCollapsed || isMobile" class="text-xl font-extrabold tracking-tight transition-opacity duration-300"> FluxMed </span>
       </div>
 
       <!-- Toggle Button -->
-      <button v-if="!isMobile" @click="toggleSidebar" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 transition-colors">
+      <button v-if="!isMobile" @click="toggleSidebar" class="p-2 rounded-xl hover:bg-white/10 transition-colors opacity-70 hover:opacity-100">
         <Icon :name="isCollapsed ? 'heroicons:chevron-double-right' : 'heroicons:bars-3-bottom-left'" class="w-5 h-5" />
       </button>
 
       <!-- Close Button Mobile -->
-      <button v-if="isMobile" @click="toggleMobileMenu" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-red-500">
+      <button v-if="isMobile" @click="toggleMobileMenu" class="p-2 rounded-xl hover:bg-red-500 hover:text-white text-current transition-colors">
         <Icon name="heroicons:x-mark" class="w-6 h-6" />
       </button>
     </div>
@@ -144,8 +171,8 @@ const toggleMobileMenu = () => (isMobileOpen.value = !isMobileOpen.value);
         v-for="item in menuItems"
         :key="item.path"
         :to="item.path"
-        :active-class="themeColor + ' font-semibold shadow-sm'"
-        class="flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-800 group whitespace-nowrap"
+        :active-class="activeMenuTheme + ' font-bold shadow-md translate-x-1'"
+        class="flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 hover:bg-white/20 dark:hover:bg-white/5 group whitespace-nowrap"
         :class="isCollapsed && !isMobile ? 'justify-center' : ''"
         :title="isCollapsed ? item.name : ''"
       >
@@ -157,18 +184,14 @@ const toggleMobileMenu = () => (isMobileOpen.value = !isMobileOpen.value);
     </nav>
 
     <!-- FOOTER -->
-    <div class="p-4 space-y-4 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
-      <div v-show="!isCollapsed || isMobile" class="px-2 text-xs font-bold uppercase text-slate-400">
+    <div class="p-4 space-y-4 border-t border-current/10">
+      <div v-show="!isCollapsed || isMobile" class="px-2 text-xs font-bold uppercase opacity-60">
         Logged in as: <span :class="themeColor.split(' ')[0]">{{ user?.role || "Guest" }}</span>
       </div>
 
       <ClientOnly>
-        <button
-          @click="toggleDark()"
-          class="flex items-center gap-3 w-full px-3 py-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all font-medium whitespace-nowrap"
-          :class="isCollapsed && !isMobile ? 'justify-center' : ''"
-        >
-          <Icon :name="isDark ? 'heroicons:moon-solid' : 'heroicons:sun-solid'" class="w-6 h-6 shrink-0 text-orange-500 dark:text-yellow-400" />
+        <button @click="toggleDark()" class="flex items-center gap-3 w-full px-3 py-2 rounded-xl transition-all font-medium whitespace-nowrap hover:bg-white/20" :class="isCollapsed && !isMobile ? 'justify-center' : ''">
+          <Icon :name="isDark ? 'heroicons:moon-solid' : 'heroicons:sun-solid'" class="w-6 h-6 shrink-0" />
           <span v-show="!isCollapsed || isMobile">
             {{ isDark ? "Dark Mode" : "Light Mode" }}
           </span>
@@ -177,7 +200,7 @@ const toggleMobileMenu = () => (isMobileOpen.value = !isMobileOpen.value);
 
       <button
         @click="logout"
-        class="flex items-center gap-3 w-full px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all font-medium whitespace-nowrap"
+        class="flex items-center gap-3 w-full px-3 py-2 hover:bg-red-500 hover:text-white rounded-xl transition-all font-medium whitespace-nowrap opacity-80 hover:opacity-100"
         :class="isCollapsed && !isMobile ? 'justify-center' : ''"
       >
         <Icon name="heroicons:arrow-left-on-rectangle" class="w-6 h-6 shrink-0" />
