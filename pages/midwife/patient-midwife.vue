@@ -1,96 +1,81 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed } from "vue";
 
-// --- Types ---
-type SummaryCard = {
-  title: string;
-  value: string;
-  trend?: string;
-  trendUp?: boolean;
-  icon: string;
-  color: string;
-  textColor: string;
-  trendColor: string;
-};
+// --- 🔌 KONEKSI KE API BACKEND ---
+// Mengambil data dari endpoint yang sudah kita buat sebelumnya
+interface PatientResponse {
+  data: Array<{
+    id: number;
+    name: string;
+    patientId: string;
+    age: string;
+    type: string;
+    status: string;
+    avatar: string;
+    stage?: string;
+    weight?: string;
+    recovery?: string;
+    nextAppt: string;
+    lastVisit?: string;
+    feeding?: string;
+  }>;
+}
 
-type PatientCard = {
-  id: string;
-  name: string;
-  patientId: string;
-  avatar: string;
-  age: string;
-  stage: string;
-  nextAppt: string;
-  lastVisit: string;
-  status: "High Risk" | "Normal" | "Newborn" | "Monitoring" | "Overdue";
-  type: "pregnant" | "baby" | "postpartum";
-  weight?: string;
-  feeding?: string;
-  recovery?: string;
-};
+const { data: response, pending, refresh } = await useFetch<PatientResponse>("/api/midwife/patients");
 
-// --- Mock Data (Summary Cards) ---
-const summaryCards = ref<SummaryCard[]>([
-  {
-    title: "Total Patients",
-    value: "124",
-    trend: "+5% this month",
-    trendUp: true,
-    icon: "heroicons:users",
-    color: "bg-purple-50 dark:bg-purple-900/20",
-    textColor: "text-purple-600 dark:text-purple-300",
-    trendColor: "text-green-600 dark:text-green-400",
-  },
-  {
-    title: "High Risk",
-    value: "8",
-    trend: "+2 new cases",
-    trendUp: true,
-    icon: "heroicons:exclamation-triangle",
-    color: "bg-red-50 dark:bg-red-900/20",
-    textColor: "text-red-600 dark:text-red-300",
-    trendColor: "text-red-600 dark:text-red-400",
-  },
-  { title: "Pregnant Moms", value: "85", trend: "Active pregnancies", icon: "heroicons:heart", color: "bg-pink-50 dark:bg-pink-900/20", textColor: "text-pink-600 dark:text-pink-300", trendColor: "text-slate-500 dark:text-slate-400" },
-  { title: "Newborns", value: "39", trend: "Under 6 months", icon: "heroicons:face-smile", color: "bg-indigo-50 dark:bg-indigo-900/20", textColor: "text-indigo-600 dark:text-indigo-300", trendColor: "text-slate-500 dark:text-slate-400" },
-]);
+// --- COMPUTED DATA (Hitung Otomatis) ---
+// Menghitung angka-angka untuk kartu ringkasan berdasarkan data asli
+const summaryCards = computed(() => {
+  const list = response.value?.data || [];
+  const total = list.length;
+  // Hitung jumlah pasien dengan status tertentu
+  const highRisk = list.filter((p: any) => p.status === "High Risk").length;
+  const pregnant = list.filter((p: any) => p.type === "pregnant").length;
+  const babies = list.filter((p: any) => p.type === "baby").length;
 
-// --- Mock Data (Patients) ---
-const patients = ref<PatientCard[]>([
-  { id: "1", name: "Sarah Jenkins", patientId: "#PT-8921", avatar: "https://i.pravatar.cc/150?u=sarah", age: "28 yrs", stage: "Week 34", nextAppt: "Oct 24, 10:00 AM", lastVisit: "Oct 10", status: "High Risk", type: "pregnant" },
-  {
-    id: "2",
-    name: "Baby Leo",
-    patientId: "Mother: Emily Wong",
-    avatar: "https://i.pravatar.cc/150?u=leo",
-    age: "2 Weeks",
-    stage: "",
-    nextAppt: "Nov 02, 09:30 AM",
-    lastVisit: "",
-    status: "Newborn",
-    type: "baby",
-    weight: "3.8 kg",
-    feeding: "Breastfed",
-  },
-  { id: "3", name: "Maria Rodriguez", patientId: "#PT-9004", avatar: "https://i.pravatar.cc/150?u=maria", age: "31 yrs", stage: "Week 12", nextAppt: "Nov 15, 14:00 PM", lastVisit: "Oct 14", status: "Normal", type: "pregnant" },
-  { id: "4", name: "Keisha Adams", patientId: "#PT-9102", avatar: "https://i.pravatar.cc/150?u=keisha", age: "24 yrs", stage: "Week 28", nextAppt: "Oct 30, 11:15 AM", lastVisit: "Oct 01", status: "Normal", type: "pregnant" },
-  {
-    id: "5",
-    name: "Anita Roy",
-    patientId: "#PT-8800",
-    avatar: "https://i.pravatar.cc/150?u=anita",
-    age: "35 yrs",
-    stage: "Postpartum",
-    nextAppt: "Nov 05, 13:00 PM",
-    lastVisit: "Good",
-    status: "Monitoring",
-    type: "postpartum",
-    recovery: "Good",
-  },
-  { id: "6", name: "Fatima Al-Sayed", patientId: "#PT-8855", avatar: "https://i.pravatar.cc/150?u=fatima", age: "29 yrs", stage: "Week 41", nextAppt: "Tomorrow", lastVisit: "Oct 20", status: "Overdue", type: "pregnant" },
-]);
+  return [
+    {
+      title: "Total Pasien",
+      value: total.toString(),
+      trend: "Data Realtime",
+      trendUp: true,
+      icon: "heroicons:users",
+      color: "bg-purple-50 dark:bg-purple-900/20",
+      textColor: "text-purple-600 dark:text-purple-300",
+      trendColor: "text-green-600 dark:text-green-400",
+    },
+    {
+      title: "Resiko Tinggi",
+      value: highRisk.toString(),
+      trend: "Perlu Perhatian",
+      trendUp: true,
+      icon: "heroicons:exclamation-triangle",
+      color: "bg-red-50 dark:bg-red-900/20",
+      textColor: "text-red-600 dark:text-red-300",
+      trendColor: "text-red-600 dark:text-red-400",
+    },
+    {
+      title: "Ibu Hamil",
+      value: pregnant.toString(),
+      trend: "Aktif",
+      icon: "heroicons:heart",
+      color: "bg-pink-50 dark:bg-pink-900/20",
+      textColor: "text-pink-600 dark:text-pink-300",
+      trendColor: "text-slate-500 dark:text-slate-400",
+    },
+    {
+      title: "Bayi & Balita",
+      value: babies.toString(),
+      trend: "< 5 Tahun",
+      icon: "heroicons:face-smile",
+      color: "bg-indigo-50 dark:bg-indigo-900/20",
+      textColor: "text-indigo-600 dark:text-indigo-300",
+      trendColor: "text-slate-500 dark:text-slate-400",
+    },
+  ];
+});
 
-// --- Helper Functions for Styling ---
+// --- Helper Functions for Styling (Tetap sama, tidak perlu diubah) ---
 const getStatusStyles = (status: string) => {
   switch (status) {
     case "High Risk":
@@ -148,23 +133,20 @@ const getStatusDotColor = (status: string) => {
     <!-- HEADER -->
     <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-slate-900 dark:text-white">Patients</h1>
-        <p class="text-slate-500 dark:text-slate-400 mt-1">Manage expectant mothers and newborns under your care.</p>
+        <h1 class="text-3xl font-bold text-slate-900 dark:text-white">Daftar Pasien (KIA)</h1>
+        <p class="text-slate-500 dark:text-slate-400 mt-1">Kelola data ibu hamil, bayi, dan nifas dalam satu tempat.</p>
       </div>
       <div class="flex items-center gap-3">
-        <!-- Search Bar (Hidden on Mobile) -->
+        <!-- Tombol Refresh -->
+        <button @click="refresh()" class="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-purple-600 transition" title="Refresh Data">
+          <Icon name="heroicons:arrow-path" class="w-5 h-5" :class="{ 'animate-spin': pending }" />
+        </button>
         <div class="relative hidden md:block">
           <Icon name="heroicons:magnifying-glass" class="w-5 h-5 absolute left-3 top-3 text-slate-400" />
-          <input type="text" placeholder="Quick search..." class="pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 w-64 text-sm" />
+          <input type="text" placeholder="Cari pasien..." class="pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 w-64 text-sm" />
         </div>
-        <button class="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition">
-          <Icon name="heroicons:bell" class="w-5 h-5" />
-        </button>
-        <button class="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition">
-          <Icon name="heroicons:chat-bubble-left-right" class="w-5 h-5" />
-        </button>
         <div class="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 border-2 border-purple-500 dark:border-purple-400 overflow-hidden">
-          <img src="https://i.pravatar.cc/150?u=bidan" alt="Profile" class="w-full h-full object-cover" />
+          <img src="https://ui-avatars.com/api/?name=Bidan+Sarah&background=random" alt="Profile" class="w-full h-full object-cover" />
         </div>
       </div>
     </div>
@@ -190,44 +172,40 @@ const getStatusDotColor = (status: string) => {
 
     <!-- FILTER & ADD PATIENT -->
     <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-      <!-- Search & Filters -->
       <div class="flex flex-1 gap-3 w-full md:w-auto">
-        <div class="relative flex-1 md:flex-none md:w-72">
+        <div class="relative flex-1 md:flex-none md:w-72 md:hidden">
           <Icon name="heroicons:magnifying-glass" class="w-5 h-5 absolute left-3 top-3 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search by name, ID, or phone number..."
-            class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
-          />
+          <input type="text" placeholder="Cari pasien..." class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm" />
         </div>
-        <div class="flex gap-2">
-          <select
-            class="px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none pr-8 relative bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%3E%3Cpath%20fill%3D%22%236B7280%22%20d%3D%22M5.293%207.293a1%201%200%20011.414%200L10%2010.586l3.293-3.293a1%201%200%20111.414%201.414l-4%204a1%201%200%2001-1.414%200l-4-4a1%201%200%20010-1.414z%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-right-2"
-          >
-            <option>All Status</option>
-            <option>High Risk</option>
+        <div class="flex gap-2 w-full md:w-auto">
+          <select class="flex-1 md:flex-none px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+            <option>Semua Status</option>
+            <option>Resiko Tinggi</option>
             <option>Normal</option>
-          </select>
-          <select
-            class="px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none pr-8 relative bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%3E%3Cpath%20fill%3D%22%236B7280%22%20d%3D%22M5.293%207.293a1%201%200%20011.414%200L10%2010.586l3.293-3.293a1%201%200%20111.414%201.414l-4%204a1%201%200%2001-1.414%200l-4-4a1%201%200%20010-1.414z%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-right-2"
-          >
-            <option>All Stages</option>
-            <option>Trimester 1</option>
-            <option>Trimester 2</option>
-            <option>Trimester 3</option>
           </select>
         </div>
       </div>
-      <!-- Add Patient Button -->
-      <button class="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-purple-500/30 transition flex items-center gap-2 whitespace-nowrap">
-        <Icon name="heroicons:plus" class="w-5 h-5" /> Add New Patient
+      <button class="w-full md:w-auto bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-purple-500/30 transition flex items-center justify-center gap-2 whitespace-nowrap">
+        <Icon name="heroicons:plus" class="w-5 h-5" /> Pasien Baru
       </button>
     </div>
 
+    <!-- LOADING STATE -->
+    <div v-if="pending" class="py-20 text-center text-slate-400 animate-pulse flex flex-col items-center justify-center">
+      <Icon name="svg-spinners:ring-resize" class="w-10 h-10 text-purple-300 mb-4" />
+      <p>Mengambil data pasien...</p>
+    </div>
+
+    <!-- EMPTY STATE -->
+    <div v-else-if="!response?.data?.length" class="text-center py-20 text-slate-400 bg-white dark:bg-slate-800 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700">
+      <Icon name="heroicons:user-group" class="w-12 h-12 mb-2 opacity-50 mx-auto" />
+      <p>Belum ada data pasien.</p>
+    </div>
+
     <!-- PATIENT CARDS GRID -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
       <div
-        v-for="patient in patients"
+        v-for="patient in response.data"
         :key="patient.id"
         class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-5 shadow-sm hover:shadow-md transition border-l-4"
         :class="getCardBorderColor(patient.status)"
@@ -249,35 +227,39 @@ const getStatusDotColor = (status: string) => {
         <!-- Details Grid -->
         <div class="grid grid-cols-2 gap-4 text-sm mb-4">
           <div>
-            <p class="text-slate-400 text-xs uppercase font-bold tracking-wider mb-1">AGE</p>
+            <p class="text-slate-400 text-xs uppercase font-bold tracking-wider mb-1">USIA</p>
             <p class="font-medium text-slate-700 dark:text-slate-200">{{ patient.age }}</p>
           </div>
+
+          <!-- Kondisional Render -->
           <div v-if="patient.type === 'pregnant'">
-            <p class="text-slate-400 text-xs uppercase font-bold tracking-wider mb-1">STAGE</p>
+            <p class="text-slate-400 text-xs uppercase font-bold tracking-wider mb-1">USIA KANDUNGAN</p>
             <p class="font-medium text-slate-700 dark:text-slate-200">{{ patient.stage }}</p>
           </div>
           <div v-if="patient.type === 'baby'">
-            <p class="text-slate-400 text-xs uppercase font-bold tracking-wider mb-1">WEIGHT</p>
+            <p class="text-slate-400 text-xs uppercase font-bold tracking-wider mb-1">BERAT BADAN</p>
             <p class="font-medium text-slate-700 dark:text-slate-200">{{ patient.weight }}</p>
           </div>
           <div v-if="patient.type === 'postpartum'">
-            <p class="text-slate-400 text-xs uppercase font-bold tracking-wider mb-1">STATUS</p>
-            <p class="font-medium text-slate-700 dark:text-slate-200">{{ patient.stage }}</p>
+            <p class="text-slate-400 text-xs uppercase font-bold tracking-wider mb-1">KONDISI</p>
+            <p class="font-medium text-slate-700 dark:text-slate-200">{{ patient.recovery }}</p>
           </div>
+
           <div>
-            <p class="text-slate-400 text-xs uppercase font-bold tracking-wider mb-1">NEXT APPT</p>
+            <p class="text-slate-400 text-xs uppercase font-bold tracking-wider mb-1">JADWAL BERIKUTNYA</p>
             <p class="font-medium text-slate-700 dark:text-slate-200">{{ patient.nextAppt }}</p>
           </div>
+
           <div v-if="patient.type === 'pregnant'">
-            <p class="text-slate-400 text-xs uppercase font-bold tracking-wider mb-1">LAST VISIT</p>
+            <p class="text-slate-400 text-xs uppercase font-bold tracking-wider mb-1">KUNJUNGAN TERAKHIR</p>
             <p class="font-medium text-slate-700 dark:text-slate-200">{{ patient.lastVisit }}</p>
           </div>
           <div v-if="patient.type === 'baby'">
-            <p class="text-slate-400 text-xs uppercase font-bold tracking-wider mb-1">FEEDING</p>
+            <p class="text-slate-400 text-xs uppercase font-bold tracking-wider mb-1">PEMBERIAN MAKAN</p>
             <p class="font-medium text-slate-700 dark:text-slate-200">{{ patient.feeding }}</p>
           </div>
           <div v-if="patient.type === 'postpartum'">
-            <p class="text-slate-400 text-xs uppercase font-bold tracking-wider mb-1">RECOVERY</p>
+            <p class="text-slate-400 text-xs uppercase font-bold tracking-wider mb-1">PEMULIHAN</p>
             <p class="font-medium text-slate-700 dark:text-slate-200">{{ patient.recovery }}</p>
           </div>
         </div>
@@ -288,9 +270,25 @@ const getStatusDotColor = (status: string) => {
             <span class="w-1.5 h-1.5 rounded-full" :class="getStatusDotColor(patient.status)"></span>
             {{ patient.status }}
           </span>
-          <button class="text-purple-600 dark:text-purple-400 text-sm font-bold hover:underline">View Profile</button>
+          <button class="text-purple-600 dark:text-purple-400 text-sm font-bold hover:underline">Lihat Detail</button>
         </div>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+</style>
