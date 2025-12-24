@@ -2,6 +2,14 @@ import { db } from "../../utils/db";
 import { patients } from "../../database/schema";
 import { eq } from "drizzle-orm";
 
+const calculateAge = (birthDateString: string) => {
+  if (!birthDateString) return null;
+  const birthDate = new Date(birthDateString);
+  const diff = Date.now() - birthDate.getTime();
+  const ageDate = new Date(diff);
+  return Math.abs(ageDate.getUTCFullYear() - 1970);
+};
+
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
 
@@ -26,7 +34,8 @@ export default defineEventHandler(async (event) => {
       height: body.height ? parseInt(body.height) : null,
       weight: body.weight ? parseInt(body.weight) : null,
 
-      birthDate: body.birthDate ? new Date(body.birthDate) : null,
+      birthDate: body.birthDate ? new Date(body.birthDate).toISOString() : null,
+      age: body.birthDate ? calculateAge(body.birthDate) : undefined,
       updatedAt: new Date(), // Update timestamp
     };
 

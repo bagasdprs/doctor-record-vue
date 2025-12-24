@@ -5,7 +5,11 @@ definePageMeta({ layout: "default" });
 const patients = ref<any[]>([]);
 const search = ref("");
 const showModal = ref(false);
-const isLoading = ref(false);
+
+// State loading
+const isLoading = ref(true);
+const isSaving = ref(false);
+
 const fileInput = ref<HTMLInputElement | null>(null);
 const activeMenuId = ref<string | null>(null);
 
@@ -22,6 +26,7 @@ const form = reactive({
 });
 
 const fetchPatients = async () => {
+  isLoading.value = true;
   try {
     const res = await $fetch<any>("/api/patients");
     if (res.success) {
@@ -29,6 +34,8 @@ const fetchPatients = async () => {
     }
   } catch (e) {
     console.error(e);
+  } finally {
+    isLoading.value = false;
   }
 };
 
@@ -42,7 +49,6 @@ const filteredPatients = computed(() => {
 const toggleMenu = (id: string) => {
   activeMenuId.value = activeMenuId.value === id ? null : id;
 };
-
 const closeMenu = () => {
   activeMenuId.value = null;
 };
@@ -68,35 +74,44 @@ const createSession = async (patientId: string, patientName: string) => {
 };
 
 // Delete Logic
+// 2. Optimasi Hapus Pasien (Instant Delete)
 const deletePatient = async (id: string, name: string) => {
   closeMenu();
   if (!confirm(`Hapus pasien: ${name}?`)) return;
 
-  isLoading.value = true;
+  const backupData = [...patients.value];
+  patients.value = patients.value.filter((p) => p.id !== id);
+
   try {
-    const res = await $fetch<any>("/api/patients/delete", { method: "POST", body: { id } });
-    if (res.success) fetchPatients();
+    const res = await $fetch<any>("/api/patients/delete", {
+      method: "POST",
+      body: { id },
+    });
   } catch (error: any) {
     alert(error.statusMessage || "Gagal menghapus.");
-  } finally {
-    isLoading.value = false;
+    patients.value = backupData;
   }
 };
 
 // Form Logic
+// / 1. Optimasi Tambah Pasien (Instant Feedback)
 const handleSubmit = async () => {
-  isLoading.value = true;
+  isSaving.value = true;
   try {
-    // Note: Untuk MVP ini kita pakai create dulu, logic edit bisa ditambahkan nanti
-    // atau pakai modal edit terpisah. Di sini fokus ke create baru.
-    await $fetch("/api/patients/create", { method: "POST", body: { ...form } });
-    showModal.value = false;
-    resetForm();
-    fetchPatients();
+    const res = await $fetch<any>("/api/patients/create", {
+      method: "POST",
+      body: { ...form },
+    });
+
+    if (res.success) {
+      patients.value.unshift(res.data);
+      showModal.value = false;
+      resetForm();
+    }
   } catch (error: any) {
     alert(error.statusMessage || "Gagal menyimpan.");
   } finally {
-    isLoading.value = false;
+    isSaving.value = false;
   }
 };
 
@@ -125,11 +140,9 @@ const resetForm = () => {
   form.avatarUrl = "";
 };
 
-// Function untuk generate avatar otomatis
+// Function for generate avatar
 const getPatientAvatar = (patient: { name: string; avatarUrl?: string }) => {
   if (patient.avatarUrl) return patient.avatarUrl;
-
-  // Menggunakan DiceBear dengan seed Nama agar avatar tetap sama untuk orang yang sama
   return `https://api.dicebear.com/7.x/avataaars/svg?seed=${patient.name}`;
 };
 
@@ -168,8 +181,14 @@ onMounted(() => fetchPatients());
       </div>
     </div>
 
+    <!-- Loading section -->
+    <div v-if="isLoading" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm min-h-[400px] flex flex-col items-center justify-center animate-pulse relative z-10">
+      <Icon name="svg-spinners:ring-resize" class="w-12 h-12 text-blue-500 mb-4" />
+      <p class="text-slate-500 font-bold">Loading Patients Data...</p>
+    </div>
+
     <!-- Table -->
-    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden relative z-10">
+    <div v-else class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden relative z-10 animate-fade-in">
       <div class="overflow-x-auto min-h-[400px]">
         <table class="w-full text-left border-collapse">
           <thead class="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
@@ -187,12 +206,10 @@ onMounted(() => fetchPatients());
               <!-- Patient Info (CLICKABLE NOW!) -->
               <td class="p-4 align-top">
                 <div class="flex items-center gap-3">
-                  <!-- Klik Foto untuk ke detail -->
                   <NuxtLink :to="{ path: `/patients/${p.id}`, query: { source: 'list' } }">
                     <img :src="getPatientAvatar(p)" class="w-10 h-10 rounded-full object-cover border bg-slate-100 hover:opacity-80 transition" />
                   </NuxtLink>
                   <div>
-                    <!-- Klik Nama untuk ke detail -->
                     <NuxtLink :to="{ path: `/patients/${p.id}`, query: { source: 'list' } }" class="font-bold text-slate-900 dark:text-white hover:text-blue-600 hover:underline transition">
                       {{ p.name }}
                     </NuxtLink>
@@ -212,8 +229,11 @@ onMounted(() => fetchPatients());
               <td class="p-4 align-top text-sm text-slate-600 dark:text-slate-300">{{ p.phone || "-" }}</td>
               <td class="p-4 align-top">
                 <span class="text-sm font-medium" :class="p.gender === 'Male' ? 'text-blue-600' : 'text-pink-600'">{{ p.gender }}</span>
-                <!-- Hitung umur simpel di template -->
-                <div class="text-xs text-slate-400">{{ p.birthDate ? new Date().getFullYear() - new Date(p.birthDate).getFullYear() + " Years" : "-" }}</div>
+                <div class="text-xs text-slate-400">
+                  <span v-if="p.age">{{ p.age }} Years</span>
+                  <span v-else-if="p.birthDate"> {{ new Date().getFullYear() - new Date(p.birthDate).getFullYear() }} Years </span>
+                  <span v-else>-</span>
+                </div>
               </td>
 
               <!-- Action Menu -->

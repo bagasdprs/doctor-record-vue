@@ -6,7 +6,7 @@ const patientId = route.params.id as string;
 
 // STATE
 const isLoading = ref(true);
-const isCreatingVisit = ref(false); // State loading khusus tombol visit
+const isCreatingVisit = ref(false);
 const patient = ref<any>(null);
 const activeTab = ref("visit-timeline");
 
@@ -40,7 +40,6 @@ const fetchDetail = async () => {
     }
   } catch (err) {
     console.error(err);
-    // alert("Gagal memuat data pasien."); // Silent error biar ga ganggu UI
   } finally {
     isLoading.value = false;
   }
@@ -58,11 +57,9 @@ const handleRefresh = () => {
 
 // --- 🔥 LOGIC BARU: START VISIT REAL-TIME 🔥 ---
 const startVisit = async () => {
-  // Cegah klik ganda
   if (isCreatingVisit.value) return;
 
   if (!confirm("Mulai sesi konsultasi sekarang? Waktu Check-In akan dicatat.")) return;
-
   isCreatingVisit.value = true;
 
   try {
@@ -71,18 +68,14 @@ const startVisit = async () => {
       method: "POST",
       body: {
         patientId: patientId,
-        // Kita bisa kirim data awal lain jika perlu
       },
     });
-
     if (res.success) {
-      // 2. Sukses! Data masuk DB dengan jam sekarang.
-      // 3. Pindah ke Live Record bawa ID pasien & Nama buat header
-      navigateTo({
+      await navigateTo({
         path: "/consultation/live-record",
         query: {
           patientId: patientId,
-          patientName: patient.value.name, // Kirim nama biar header live-record gak 'John Appleseed'
+          patientName: patient.value.name,
           patientInfo: `${calculateAge(patient.value.birthDate)}yo • ${patient.value.gender}`,
         },
       });
@@ -103,6 +96,12 @@ const goBack = () => {
   } else {
     navigateTo("/patients");
   }
+};
+
+// Function for generate avatar
+const getPatientAvatar = (patient: { name: string; avatarUrl?: string }) => {
+  if (patient.avatarUrl) return patient.avatarUrl;
+  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${patient.name}`;
 };
 
 onMounted(() => {
@@ -138,7 +137,7 @@ onMounted(() => {
             <div class="absolute top-0 left-0 w-full h-28 bg-linear-to-br from-blue-50 to-indigo-50 dark:from-slate-700 dark:to-slate-800 z-0"></div>
 
             <div class="relative z-10">
-              <img :src="patient.avatarUrl || 'https://i.pravatar.cc/150?u=default'" class="w-28 h-28 rounded-full object-cover border-4 border-white dark:border-slate-800 shadow-md mx-auto mb-3 bg-white" />
+              <img :src="getPatientAvatar(patient)" class="w-28 h-28 rounded-full object-cover border-4 border-white dark:border-slate-800 shadow-md mx-auto mb-3 bg-white" />
 
               <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-0.5">{{ patient.name }}</h2>
 
