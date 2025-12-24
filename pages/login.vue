@@ -5,6 +5,10 @@ definePageMeta({
   layout: "auth",
 });
 
+useHead({
+  title: "Login",
+});
+
 const authStore = useAuthStore();
 const { $swal } = useNuxtApp();
 

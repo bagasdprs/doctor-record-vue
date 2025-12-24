@@ -1,6 +1,10 @@
 <script setup lang="ts">
 definePageMeta({ layout: "default" });
 
+useHead({
+  title: "Consultations",
+});
+
 // STATE
 const searchQuery = ref("");
 const filterStatus = ref("All"); // All, Today, Drafts

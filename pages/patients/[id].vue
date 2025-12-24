@@ -1,6 +1,10 @@
 <script setup lang="ts">
 definePageMeta({ layout: "default" });
 
+useHead({
+  title: computed(() => (patient.value ? `${patient.value.name} Profile` : "Loading Patient...")),
+});
+
 const route = useRoute();
 const patientId = route.params.id as string;
 

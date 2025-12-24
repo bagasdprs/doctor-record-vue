@@ -1,6 +1,10 @@
 <script setup lang="ts">
 definePageMeta({ layout: "default" });
 
+useHead({
+  title: "Patien Management",
+});
+
 // State
 const patients = ref<any[]>([]);
 const search = ref("");

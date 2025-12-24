@@ -4,6 +4,10 @@ definePageMeta({
   layout: "default",
 });
 
+useHead({
+  title: "Record Live Consultation",
+});
+
 const route = useRoute();
 
 // --- STATE DINAMIS ---

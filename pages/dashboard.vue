@@ -2,6 +2,10 @@
 import { useAuthStore } from "~/stores/auth";
 import { storeToRefs } from "pinia";
 
+useHead({
+  title: "Dashboard Overview",
+});
+
 // Interface User
 interface User {
   id?: string;

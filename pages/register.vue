@@ -3,6 +3,10 @@ definePageMeta({
   layout: "auth-register",
 });
 
+useHead({
+  title: "Register Clinic Account",
+});
+
 // Interface disesuaikan untuk Owner Klinik
 interface RegisterForm {
   fullName: string;

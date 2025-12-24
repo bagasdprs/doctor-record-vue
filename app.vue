@@ -15,6 +15,9 @@ await callOnce(async () => {
 });
 
 useHead({
+  titleTemplate: (titleChunk) => {
+    return titleChunk ? `${titleChunk} | FluxMed` : "FluxMed - AI Medical Scribe";
+  },
   title: "FluxMed - AI Medical Scribe",
   meta: [{ name: "description", content: "FluxMed – The AI-Powered Medical Scribe for Modern Clinics. Streamline patient documentation, automate SOAP notes, and focus on care, not paperwork." }],
   htmlAttrs: {
