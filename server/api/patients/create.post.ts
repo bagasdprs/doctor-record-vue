@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
         avatarUrl: body.avatarUrl || null,
         gender: body.gender,
         address: body.address || null,
-        birthDate: body.birthDate ? new Date(body.birthDate) : null,
+        birthDate: body.birthDate ? new Date(body.birthDate).toISOString() : null,
       })
       .returning();
 

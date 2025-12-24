@@ -125,6 +125,14 @@ const resetForm = () => {
   form.avatarUrl = "";
 };
 
+// Function untuk generate avatar otomatis
+const getPatientAvatar = (patient: { name: string; avatarUrl?: string }) => {
+  if (patient.avatarUrl) return patient.avatarUrl;
+
+  // Menggunakan DiceBear dengan seed Nama agar avatar tetap sama untuk orang yang sama
+  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${patient.name}`;
+};
+
 onMounted(() => fetchPatients());
 </script>
 
@@ -181,7 +189,7 @@ onMounted(() => fetchPatients());
                 <div class="flex items-center gap-3">
                   <!-- Klik Foto untuk ke detail -->
                   <NuxtLink :to="{ path: `/patients/${p.id}`, query: { source: 'list' } }">
-                    <img :src="p.avatarUrl || 'https://i.pravatar.cc/150?u=default'" class="w-10 h-10 rounded-full object-cover border bg-slate-100 hover:opacity-80 transition" />
+                    <img :src="getPatientAvatar(p)" class="w-10 h-10 rounded-full object-cover border bg-slate-100 hover:opacity-80 transition" />
                   </NuxtLink>
                   <div>
                     <!-- Klik Nama untuk ke detail -->
