@@ -5,7 +5,7 @@ import AuroraBackground from "~/components/ui/AuroraBackground.vue";
 <template>
   <div class="min-h-screen w-full flex bg-slate-50 dark:bg-slate-950 overflow-hidden">
     <div class="w-full lg:w-1/2 flex items-center justify-center p-6 md:p-12 bg-white dark:bg-slate-950 relative z-20">
-      <div class="w-full max-w-[550px]">
+      <div class="w-full max-w-137.5">
         <slot />
       </div>
     </div>

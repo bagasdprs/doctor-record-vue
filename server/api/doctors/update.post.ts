@@ -6,14 +6,11 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 
 export default defineEventHandler(async (event) => {
-  // 1. Baca Data Multipart (File + Teks)
   const files = await readMultipartFormData(event);
-
   if (!files) {
     throw createError({ statusCode: 400, statusMessage: "Data tidak valid" });
   }
 
-  // Helper function: Ambil value dari field text
   const getValue = (name: string) => {
     const item = files.find((f) => f.name === name);
     return item?.data.toString();
@@ -22,42 +19,36 @@ export default defineEventHandler(async (event) => {
   const email = getValue("email");
   if (!email) throw createError({ statusCode: 400, statusMessage: "Email wajib ada" });
 
-  // 2. Siapkan Object Update
-  // Pastikan kolom-kolom ini ada di tabel 'users' schema.ts
+  const birthDateString = getValue("birthDate");
+
   const updateData: any = {
     fullName: getValue("fullName"),
     specialization: getValue("specialization"),
     phone: getValue("phone"),
     address: getValue("address"),
+    gender: getValue("gender"),
+    bio: getValue("bio"),
+    birthDate: birthDateString || null,
     updatedAt: new Date(),
   };
 
-  // 3. LOGIKA UPLOAD FOTO (Simpan ke Folder)
   const avatarFile = files.find((f) => f.name === "avatarFile");
 
   if (avatarFile && avatarFile.filename) {
-    // a. Tentukan ekstensi file (.jpg/.png)
     const ext = path.extname(avatarFile.filename);
-    // b. Buat nama file unik (biar gak bentrok)
     const fileName = `${randomUUID()}${ext}`;
-    // c. Tentukan folder tujuan (public/uploads)
     const uploadDir = path.join(process.cwd(), "public", "uploads");
 
-    // Buat folder kalau belum ada
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
 
-    // d. Simpan file ke hardisk
     const filePath = path.join(uploadDir, fileName);
     fs.writeFileSync(filePath, avatarFile.data);
-
-    // e. Simpan URL-nya ke database
     updateData.avatarUrl = `/uploads/${fileName}`;
   }
 
   try {
-    // 4. Update Database (Tabel users)
     const updatedUser = await db.update(users).set(updateData).where(eq(users.email, email)).returning();
 
     return {

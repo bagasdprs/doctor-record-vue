@@ -1,5 +1,5 @@
 import { db } from "../../utils/db";
-import { users } from "../../database/schema"; // GANTI 'doctors' JADI 'users'
+import { users } from "../../database/schema";
 import { eq } from "drizzle-orm";
 
 export default defineEventHandler(async (event) => {
@@ -27,11 +27,11 @@ export default defineEventHandler(async (event) => {
       specialization: user.specialization,
       phone: user.phone,
       address: user.address,
-      // bio: user.bio, // Hapus jika di schema 'users' tidak ada kolom bio, atau tambahkan di schema
-      // gender: user.gender, // Cek schema users, jika tidak ada hapus baris ini
-      // birthDate: user.birthDate, // Cek schema users
+      bio: user.bio,
+      gender: user.gender,
+      birthDate: user.birthDate,
       avatarUrl: user.avatarUrl,
-      role: user.role, // Tambahkan info role
+      role: user.role,
     },
   };
 });

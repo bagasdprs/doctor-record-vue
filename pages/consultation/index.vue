@@ -5,9 +5,13 @@ useHead({
   title: "Consultations",
 });
 
+const route = useRoute();
+const id = route.params.id;
+
 // STATE
 const searchQuery = ref("");
 const filterStatus = ref("All"); // All, Today, Drafts
+const activeDropdownId = ref<string | null>(null);
 
 // --- FETCH DATA REAL (Ganti Dummy) ---
 const { data: res, pending, refresh } = await useFetch<any>("/api/consultations");
@@ -37,7 +41,6 @@ const filteredHistory = computed(() => {
 const formatDate = (dateString: string) => {
   if (!dateString) return "-";
   const date = new Date(dateString);
-  // Cek apakah hari ini?
   const today = new Date();
   if (date.toDateString() === today.toDateString()) {
     return `Today, ${date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`;
@@ -58,12 +61,52 @@ const getStatusColor = (status: string) => {
   }
 };
 
+// --- ACTION HANDLERS ---
+const toggleDropdown = (id: string) => {
+  if (activeDropdownId.value === id) {
+    activeDropdownId.value = null; // Tutup kalau diklik lagi
+  } else {
+    activeDropdownId.value = id; // Buka yang baru
+  }
+};
+
+// Tutup dropdown kalau klik di luar (UX Wajib!)
+onMounted(() => {
+  document.addEventListener("click", (e: any) => {
+    // Kalau yang diklik BUKAN tombol action, tutup dropdown
+    if (!e.target.closest(".action-btn")) {
+      activeDropdownId.value = null;
+    }
+  });
+});
+
+// Fungsi Navigasi & Aksi
+const onViewDetail = (id: string) => navigateTo(`/consultation/${id}`);
+
+const onPrint = (item: any) => {
+  activeDropdownId.value = null;
+  alert(`🖨️ Generating PDF for ${item.patientName}...\n(Fitur ini akan di-connect ke PDF Generator nanti)`);
+};
+
+const onEmail = (item: any) => {
+  activeDropdownId.value = null;
+  alert(`📧 Sending email summary to ${item.patientName}...\n(Aman! Data sensitif akan disensor)`);
+};
+
+const onEditDraft = (id: string) => {
+  // Arahkan kembali ke halaman Live Record dengan ID konsultasi
+  navigateTo({
+    path: "/consultation/live-record",
+    query: { consultationId: id, mode: "resume" },
+  });
+};
+
 // Auto Refresh data setiap masuk halaman ini
 onActivated(() => refresh());
 </script>
 
 <template>
-  <div class="min-h-screen">
+  <div class="min-h-screen" @click.stop>
     <!-- Header Section -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
       <div>
@@ -71,7 +114,7 @@ onActivated(() => refresh());
         <p class="text-slate-500 dark:text-slate-400 mt-1">Manage patient history and AI summaries.</p>
       </div>
 
-      <NuxtLink to="/consultation/live-record" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-blue-500/30 flex items-center gap-2 transition transform active:scale-95">
+      <NuxtLink to="/patients" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-blue-500/30 flex items-center gap-2 transition transform active:scale-95">
         <Icon name="heroicons:plus" class="w-5 h-5" />
         <span>New Consultation</span>
       </NuxtLink>
@@ -93,25 +136,13 @@ onActivated(() => refresh());
 
       <div class="flex bg-slate-100 dark:bg-slate-700 p-1 rounded-xl">
         <button
-          @click="filterStatus = 'All'"
-          :class="filterStatus === 'All' ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-800 dark:text-white' : 'text-slate-500 dark:text-slate-300 hover:text-slate-800'"
+          v-for="tab in ['All', 'Today', 'Drafts']"
+          :key="tab"
+          @click="filterStatus = 'tab'"
+          :class="filterStatus === 'tab' ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-800 dark:text-white' : 'text-slate-500 dark:text-slate-300 hover:text-slate-800'"
           class="px-4 py-1.5 rounded-lg text-sm font-bold transition"
         >
-          All
-        </button>
-        <button
-          @click="filterStatus = 'Today'"
-          :class="filterStatus === 'Today' ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-800 dark:text-white' : 'text-slate-500 dark:text-slate-300 hover:text-slate-800'"
-          class="px-4 py-1.5 rounded-lg text-sm font-bold transition"
-        >
-          Today
-        </button>
-        <button
-          @click="filterStatus = 'Drafts'"
-          :class="filterStatus === 'Drafts' ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-800 dark:text-white' : 'text-slate-500 dark:text-slate-300 hover:text-slate-800'"
-          class="px-4 py-1.5 rounded-lg text-sm font-bold transition"
-        >
-          Drafts
+          {{ tab }}
         </button>
       </div>
     </div>
@@ -143,7 +174,7 @@ onActivated(() => refresh());
         </thead>
         <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
           <tr v-for="item in filteredHistory" :key="item.id" class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition cursor-pointer group">
-            <td class="p-4 align-top">
+            <td @click="onViewDetail(item.id)" class="p-4 align-top cursor-pointer">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm uppercase">
                   {{ item.patientName ? item.patientName.charAt(0) : "?" }}
@@ -155,23 +186,42 @@ onActivated(() => refresh());
               </div>
             </td>
 
-            <td class="p-4 align-top">
+            <td @click="onViewDetail(item.id)" class="p-4 align-top cursor-pointer">
               <div class="font-medium text-slate-800 dark:text-slate-200">{{ item.diagnosis || "No Diagnosis" }}</div>
               <div class="text-sm text-slate-500 line-clamp-1 italic">"{{ item.complaint || "No complaint recorded" }}"</div>
             </td>
 
-            <td class="p-4 align-top text-sm text-slate-500">{{ formatDate(item.createdAt) }}</td>
+            <td @click="onViewDetail(item.id)" class="p-4 align-top text-sm text-slate-500 cursor-pointer">{{ formatDate(item.createdAt) }}</td>
 
-            <td class="p-4 align-top">
+            <td @click="onViewDetail(item.id)" class="p-4 align-top cursor-pointer">
               <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border capitalize" :class="getStatusColor(item.status)">
                 {{ item.status }}
               </span>
             </td>
 
-            <td class="p-4 align-top text-right">
-              <button class="text-slate-400 hover:text-blue-600 p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-slate-600 transition">
-                <Icon name="heroicons:chevron-right" class="w-5 h-5" />
+            <td class="p-4 align-top text-right relative">
+              <button @click.stop="toggleDropdown(item.id)" class="text-slate-400 hover:text-blue-600 p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-slate-600 transition">
+                <Icon name="heroicons:ellipsis-vertical" class="w-5 h-5" />
               </button>
+
+              <div v-if="activeDropdownId === item.id" class="absolute right-8 top-10 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-600 z-50 overflow-hidden animate-fade-in-up">
+                <button @click="onViewDetail(item.id)" class="w-full text-left px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2">
+                  <Icon name="heroicons:eye" class="w-4 h-4 text-slate-400" /> View Detail
+                </button>
+
+                <button @click="onPrint(item)" class="w-full text-left px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2">
+                  <Icon name="heroicons:printer" class="w-4 h-4 text-slate-400" /> Print / PDF
+                </button>
+
+                <button @click="onEmail(item)" class="w-full text-left px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2">
+                  <Icon name="heroicons:envelope" class="w-4 h-4 text-slate-400" /> Email Patient
+                </button>
+
+                <div v-if="item.status === 'draft'" class="border-t border-slate-100 dark:border-slate-700 my-1"></div>
+                <button v-if="item.status === 'draft'" @click="onEditDraft(item.id)" class="w-full text-left px-4 py-3 text-sm font-bold text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 flex items-center gap-2">
+                  <Icon name="heroicons:pencil-square" class="w-4 h-4" /> Resume Draft
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -179,3 +229,20 @@ onActivated(() => refresh());
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Animasi halus buat dropdown */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in-up {
+  animation: fadeInUp 0.2s ease-out forwards;
+}
+</style>

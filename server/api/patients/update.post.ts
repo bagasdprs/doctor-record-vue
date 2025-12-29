@@ -13,7 +13,6 @@ const calculateAge = (birthDateString: string) => {
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
 
-  // Validasi ID wajib ada untuk update
   if (!body.id) {
     throw createError({ statusCode: 400, statusMessage: "ID Pasien diperlukan." });
   }
@@ -27,19 +26,16 @@ export default defineEventHandler(async (event) => {
       avatarUrl: body.avatarUrl || null,
       gender: body.gender,
       address: body.address || null,
-
       bloodType: body.bloodType || null,
       allergies: body.allergies || null,
       chronicConditions: body.chronicConditions || null,
       height: body.height ? parseInt(body.height) : null,
       weight: body.weight ? parseInt(body.weight) : null,
-
       birthDate: body.birthDate ? new Date(body.birthDate).toISOString() : null,
       age: body.birthDate ? calculateAge(body.birthDate) : undefined,
       updatedAt: new Date(), // Update timestamp
     };
 
-    // Eksekusi Update
     const updatedPatient = await db.update(patients).set(updateData).where(eq(patients.id, body.id)).returning();
 
     return {
@@ -47,8 +43,8 @@ export default defineEventHandler(async (event) => {
       message: "Data pasien berhasil diperbarui!",
       data: updatedPatient[0],
     };
+    // ------------------------------------------------
   } catch (error: any) {
-    // Handle error unik (misal ganti NIK jadi punya orang lain)
     if (error.code === "23505") {
       throw createError({ statusCode: 409, statusMessage: "NIK sudah terdaftar oleh pasien lain." });
     }

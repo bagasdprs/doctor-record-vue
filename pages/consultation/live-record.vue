@@ -218,7 +218,7 @@ const saveConsultation = async () => {
       <!-- KOLOM KANAN: TRANSKRIP -->
       <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-xl overflow-y-auto max-h-[80vh]">
         <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Transkrip Live</h3>
-        <div class="min-h-[300px] whitespace-pre-wrap text-base leading-relaxed p-4 rounded-xl bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200">
+        <div class="min-h-75 whitespace-pre-wrap text-base leading-relaxed p-4 rounded-xl bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200">
           {{ transcript || "Belum ada percakapan..." }}
         </div>
       </div>

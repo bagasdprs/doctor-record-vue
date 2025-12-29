@@ -2,7 +2,7 @@
 definePageMeta({ layout: "default" });
 
 useHead({
-  title: "Patien Management",
+  title: "Patient",
 });
 
 // State
@@ -186,14 +186,14 @@ onMounted(() => fetchPatients());
     </div>
 
     <!-- Loading section -->
-    <div v-if="isLoading" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm min-h-[400px] flex flex-col items-center justify-center animate-pulse relative z-10">
+    <div v-if="isLoading" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm min-h-100 flex flex-col items-center justify-center animate-pulse relative z-10">
       <Icon name="svg-spinners:ring-resize" class="w-12 h-12 text-blue-500 mb-4" />
       <p class="text-slate-500 font-bold">Loading Patients Data...</p>
     </div>
 
     <!-- Table -->
     <div v-else class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden relative z-10 animate-fade-in">
-      <div class="overflow-x-auto min-h-[400px]">
+      <div class="overflow-x-auto min-h-100">
         <table class="w-full text-left border-collapse">
           <thead class="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
             <tr>
@@ -261,7 +261,8 @@ onMounted(() => fetchPatients());
                 >
                   <!-- View Profile di Menu juga -->
                   <NuxtLink
-                    :to="`/patients/${p.id}`"
+                    :to="{ path: `/patients/${p.id}`, query: { source: 'list' } }"
+                    @click="closeMenu"
                     class="w-full text-left px-4 py-3 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-3 border-b border-slate-100 dark:border-slate-700/50"
                   >
                     <Icon name="heroicons:user" class="w-4 h-4 text-blue-500" /> View Profile

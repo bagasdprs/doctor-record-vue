@@ -1,8 +1,7 @@
 import { db } from "../../utils/db";
 import { consultations, patients } from "../../database/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 
-// Pastikan export default ada dan membungkus defineEventHandler
 export default defineEventHandler(async (_event) => {
   try {
     const result = await db
@@ -11,7 +10,9 @@ export default defineEventHandler(async (_event) => {
         patientId: consultations.patientId,
 
         patientName: patients.name,
-        pid: patients.nik,
+        // pid: patients.nik,
+        // pid: sql`concat(${patients.patientId}, ' / ', ${patients.nik})`,
+        pid: sql`concat(${patients.id}, ' / ', ${patients.nik})`,
 
         // Data Medis
         complaint: consultations.subjective,

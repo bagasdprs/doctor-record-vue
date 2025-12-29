@@ -149,7 +149,7 @@ const handleRegister = async () => {
 
     <div class="mt-8 text-center text-sm text-slate-500 flex flex-col md:flex-row items-center justify-center gap-1">
       <span>Sudah punya akun?</span>
-      <NuxtLink to="/login" class="text-blue-600 font-bold hover:underline hover:text-blue-700"> Masuk Dashboard </NuxtLink>
+      <NuxtLink to="/login" class="text-blue-600 font-bold hover:underline hover:text-blue-700"> Login Now </NuxtLink>
     </div>
   </div>
 </template>

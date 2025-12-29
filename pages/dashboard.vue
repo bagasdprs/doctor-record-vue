@@ -3,7 +3,7 @@ import { useAuthStore } from "~/stores/auth";
 import { storeToRefs } from "pinia";
 
 useHead({
-  title: "Dashboard Overview",
+  title: "Dashboard",
 });
 
 // Interface User
@@ -99,7 +99,6 @@ const fetchDashboardData = async () => {
         chartNewData.value = res.chart.newPatients;
         chartRecurringData.value = res.chart.recurring;
 
-        // Cari nilai tertinggi biar grafik gak kepotong
         const maxVal = Math.max(...res.chart.newPatients, ...res.chart.recurring, 5);
         maxChartValue.value = maxVal + 2;
       }
@@ -137,6 +136,12 @@ const getAreaPath = (dataPoints: number[]) => {
   if (!dataPoints.length) return "";
   const linePath = getSvgPath(dataPoints, "");
   return `${linePath} L 500,150 L 0,150 Z`;
+};
+
+// Function for generate avatar
+const getPatientAvatar = (patient: { name: string; avatarUrl?: string }) => {
+  if (patient.avatarUrl) return patient.avatarUrl;
+  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${patient.name}`;
 };
 </script>
 
@@ -301,7 +306,7 @@ const getAreaPath = (dataPoints: number[]) => {
     <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 pb-20 md:pb-0">
       <div v-for="apt in appointments" :key="apt.id" class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition">
         <div class="flex items-start gap-4 mb-4">
-          <img :src="apt.avatarUrl || 'https://i.pravatar.cc/150?u=default'" class="w-12 h-12 rounded-full object-cover" />
+          <img :src="getPatientAvatar(apt)" class="w-12 h-12 rounded-full object-cover" />
           <div>
             <h4 class="font-bold text-slate-900 dark:text-white">{{ apt.patientName }}</h4>
             <p class="text-xs text-slate-400 font-mono">ID: {{ apt.patientId || "-" }}</p>

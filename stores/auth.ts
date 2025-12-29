@@ -22,7 +22,7 @@ export const useAuthStore = defineStore("auth", () => {
       ...raw,
       avatar: userProfile.value?.avatarUrl || userProfile.value?.avatar || raw.avatar,
       name: userProfile.value?.fullName || raw.name || "Doctor",
-      role: userProfile.value?.role || raw.role, // Pastikan role terbaca
+      role: userProfile.value?.role || raw.role,
     };
   });
 

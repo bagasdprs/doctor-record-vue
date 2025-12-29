@@ -9,8 +9,10 @@ useDark({
 
 const authStore = useAuthStore();
 await callOnce(async () => {
-  if (authStore.isLoggedIn) {
+  try {
     await authStore.fetchUserProfile();
+  } catch (error) {
+    console.error("Error fetching user profile on app load:", error);
   }
 });
 

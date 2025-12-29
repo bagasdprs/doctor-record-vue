@@ -3,6 +3,10 @@ import { useAuthStore } from "~/stores/auth";
 
 definePageMeta({ layout: "default" });
 
+useHead({
+  title: "Settings",
+});
+
 // 1. Panggil Helper SweetAlert dari Plugin Nuxt
 const { $swal } = useNuxtApp();
 
@@ -13,6 +17,7 @@ const fileInput = ref<HTMLInputElement | null>(null);
 
 // State Form
 const form = reactive({
+  id: "",
   fullName: "",
   specialization: "",
   email: "",
@@ -85,6 +90,7 @@ const saveChanges = async () => {
   isLoading.value = true;
 
   const formData = new FormData();
+  formData.append("id", form.id);
   formData.append("email", form.email);
   formData.append("fullName", form.fullName);
   formData.append("specialization", form.specialization);

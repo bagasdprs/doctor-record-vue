@@ -1,5 +1,6 @@
 import { db } from "../../utils/db";
-import { consultations } from "../../database/schema";
+import { eq } from "drizzle-orm";
+import { consultations, patients } from "../../database/schema";
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
@@ -9,6 +10,17 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
+    // --- 🛡️ TAMBAHAN: CEK PASIEN DULU ---
+    const patientCheck = await db.select().from(patients).where(eq(patients.id, body.patientId)).limit(1);
+
+    if (patientCheck.length === 0) {
+      throw createError({
+        statusCode: 404,
+        statusMessage: "Data Pasien tidak ditemukan di Database. Mohon kembali ke menu Pasien.",
+      });
+    }
+    // ------------------------------------
+
     const newSession = await db
       .insert(consultations)
       .values({
@@ -19,7 +31,7 @@ export default defineEventHandler(async (event) => {
         assessment: body.assessment || "",
         plan: body.plan || "",
         summary: body.summary || `${body.assessment} - ${body.plan}`,
-        status: "Ready",
+        status: "ready",
         duration: body.duration || 0,
       })
       .returning();
